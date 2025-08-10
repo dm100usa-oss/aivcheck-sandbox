@@ -2,9 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ensure input visibility on Safari/Mac */
-input, textarea, select { @apply text-gray-900 bg-white; }
-::placeholder { @apply text-gray-400; }
+/* читаемость поля URL на Mac/Safari */
+input, textarea, select { color: #111827; background: #fff; }
+::placeholder { color: #9CA3AF; }
 
 /* Safari autofill fix */
 input:-webkit-autofill,
