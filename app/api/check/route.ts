@@ -1,76 +1,45 @@
-// app/api/check/route.ts
 import { NextResponse } from 'next/server';
 import { analyzeWeighted } from '@/lib/analyzeWeighted';
 
-// 5 core checks to display in Quick mode (score is still computed from all 15)
-const QUICK_KEYS = [
-  'robots_txt',
-  'sitemap_xml',
-  'x_robots_tag_header',
-  'meta_robots',
-  'canonical',
-] as const;
-
-// Small helper: strict URL validation (must include http/https)
-function ensureHttpUrl(value: unknown): string {
-  if (typeof value !== 'string') throw new Error('URL is required');
-  let u: URL;
-  try {
-    u = new URL(value);
-  } catch {
-    throw new Error('Please enter a valid URL (including http/https).');
-  }
-  if (u.protocol !== 'http:' && u.protocol !== 'https:') {
-    throw new Error('Please enter a valid URL (including http/https).');
-  }
-  return u.toString();
-}
+const QUICK_KEYS = ['robots_txt', 'sitemap', 'canonical', 'title', 'og_title']; // adjust for your keys
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const mode = (body?.mode === 'quick' ? 'quick' : 'full') as 'quick' | 'full';
-    const url = ensureHttpUrl(body?.url);
+    const { url } = await req.json();
+    const mode = (new URL(req.url).searchParams.get('mode') || 'quick') as 'quick' | 'pro';
 
-    // Always compute the full analysis once
-    // analyzeWeighted(url) must return at least: { score: number, checks: any[], interpretation: string }
-    const { score, checks, interpretation } = (await analyzeWeighted(url)) as {
-      score: number;
-      checks: any[];
-      interpretation?: string;
-    };
-
-    if (mode === 'quick') {
-      // Show only 5 core checks, keep the same total score as full analysis
-      const quickChecks = checks.filter((c: any) => QUICK_KEYS.includes(String(c?.key) as any));
-      return NextResponse.json({
-        ok: true,
-        mode: 'quick',
-        url,
-        score,
-        checks: quickChecks,
-        interpretation: interpretation ?? 'Quick check based on 5 core signals.',
-      });
+    if (!url || typeof url !== 'string') {
+      return NextResponse.json({ error: 'URL is required.' }, { status: 400 });
     }
 
-    // Full mode: return everything
-    return NextResponse.json({
-      ok: true,
-      mode: 'full',
-      url,
-      score,
-      checks,
-      interpretation: interpretation ?? 'Full analysis across 15 signals.',
-    });
+    // run full analysis once
+    const full: any = await analyzeWeighted(url);
+    if (!full || typeof full !== 'object') {
+      return NextResponse.json({ error: 'Analyzer returned no data.' }, { status: 500 });
+    }
+
+    const score = Number(full.score ?? 0);
+    const interpretation = String(full.interpretation ?? '');
+    const allChecks: any[] = Array.isArray(full.checks) ? full.checks : [];
+
+    const payload =
+      mode === 'quick'
+        ? {
+            score,
+            interpretation,
+            checks: allChecks.filter((c) => QUICK_KEYS.includes(String(c?.key))),
+          }
+        : {
+            score,
+            interpretation,
+            checks: allChecks,
+          };
+
+    return NextResponse.json(payload, { status: 200 });
   } catch (err: any) {
-    // Consistent error payload for the frontend
     return NextResponse.json(
-      {
-        ok: false,
-        error: 'ANALYZE_FAILED',
-        message: err?.message || 'Analyze failed. Please try again.',
-      },
-      { status: 400 },
+      { error: err?.message || 'Unexpected server error.' },
+      { status: 500 }
     );
   }
 }
