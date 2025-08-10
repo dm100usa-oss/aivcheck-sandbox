@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* читаемость поля URL на Mac/Safari */
-input, textarea, select { color: #111827; background: #fff; }
+/* Input readability on macOS/Safari */
+input, textarea, select { color: #111827; background: #ffffff; }
 ::placeholder { color: #9CA3AF; }
 
 /* Safari autofill fix */
