@@ -1,40 +1,44 @@
 "use client";
 
-type Props = { percent: number; size?: number };
+import React from "react";
 
-export default function Donut({ percent, size = 200 }: Props) {
-  const p = Math.max(0, Math.min(100, percent));
-  const outerStroke = 8;
-  const innerStroke = 20;
-  const gapBetween = 10;
+type DonutProps = {
+  value: number; // 0..100
+  size?: number; // px
+  strokeWidth?: number; // px
+};
 
-  const center = size / 2;
-  const outerR = center - outerStroke;
-  const innerR = outerR - gapBetween - innerStroke;
-
-  const innerCirc = 2 * Math.PI * innerR;
-  const dash = (p / 100) * innerCirc;
-  const gap = innerCirc - dash;
+export default function Donut({ value, size = 200, strokeWidth = 18 }: DonutProps) {
+  const clamped = Math.max(0, Math.min(100, Math.round(value)));
+  const r = (size - strokeWidth) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = (clamped / 100) * c;
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} aria-label="Visibility score">
-        <circle cx={center} cy={center} r={innerR} fill="none" stroke="#E5E7EB" strokeWidth={innerStroke} />
+    <div style={{ width: size, height: size }} className="relative">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle
-          cx={center}
-          cy={center}
-          r={innerR}
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="#e5e7eb"
+          strokeWidth={strokeWidth}
           fill="none"
-          stroke="#10B981"
-          strokeWidth={innerStroke}
-          strokeDasharray={`${dash} ${gap}`}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${center} ${center})`}
         />
-        <circle cx={center} cy={center} r={outerR} fill="none" stroke="#10B981" strokeWidth={outerStroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="#16a34a"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={`${dash} ${c - dash}`}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-3xl font-semibold tabular-nums">{p}%</div>
+        <span className="text-4xl font-extrabold text-gray-900">{clamped}%</span>
       </div>
     </div>
   );
