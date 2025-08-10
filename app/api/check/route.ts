@@ -1,45 +1,44 @@
-import { NextResponse } from 'next/server';
-import { analyzeWeighted } from '@/lib/analyzeWeighted';
+// app/api/check/route.ts
+import { NextResponse } from "next/server";
+import { analyze } from "@/lib/analyze";
 
-const QUICK_KEYS = ['robots_txt', 'sitemap', 'canonical', 'title', 'og_title']; // adjust for your keys
+// Edge runtime: no Node-only APIs used
+export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
-    const { url } = await req.json();
-    const mode = (new URL(req.url).searchParams.get('mode') || 'quick') as 'quick' | 'pro';
+    const body = await req.json().catch(() => ({}));
+    const raw = (body?.url as string | undefined)?.trim();
+    const mode = (body?.mode as "quick" | "pro" | undefined) ?? "quick";
 
-    if (!url || typeof url !== 'string') {
-      return NextResponse.json({ error: 'URL is required.' }, { status: 400 });
+    if (!raw) {
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
+    }
+    if (!isLikelyUrl(raw)) {
+      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+    }
+    if (mode !== "quick" && mode !== "pro") {
+      return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
     }
 
-    // run full analysis once
-    const full: any = await analyzeWeighted(url);
-    if (!full || typeof full !== 'object') {
-      return NextResponse.json({ error: 'Analyzer returned no data.' }, { status: 500 });
-    }
-
-    const score = Number(full.score ?? 0);
-    const interpretation = String(full.interpretation ?? '');
-    const allChecks: any[] = Array.isArray(full.checks) ? full.checks : [];
-
-    const payload =
-      mode === 'quick'
-        ? {
-            score,
-            interpretation,
-            checks: allChecks.filter((c) => QUICK_KEYS.includes(String(c?.key))),
-          }
-        : {
-            score,
-            interpretation,
-            checks: allChecks,
-          };
-
-    return NextResponse.json(payload, { status: 200 });
+    const result = await analyze(raw, mode);
+    return NextResponse.json(result, { status: 200 });
   } catch (err: any) {
     return NextResponse.json(
-      { error: err?.message || 'Unexpected server error.' },
+      { error: "Analysis failed", detail: String(err?.message ?? err ?? "unknown error") },
       { status: 500 }
     );
   }
+}
+
+export async function GET() {
+  return NextResponse.json(
+    { ok: true, usage: "POST { url: string; mode: 'quick' | 'pro' }" },
+    { status: 200 }
+  );
+}
+
+function isLikelyUrl(s: string) {
+  // Accepts https://example.com, http://example.com, or example.com
+  return /^https?:\/\/[\w.-]+\.[a-z]{2,}|^[\w.-]+\.[a-z]{2,}/i.test(s);
 }
