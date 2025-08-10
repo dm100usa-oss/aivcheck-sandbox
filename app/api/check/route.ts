@@ -1,9 +1,8 @@
 // app/api/check/route.ts
-
 import { NextResponse } from 'next/server';
-import analyzeWeighted from '@/lib/analyzeWeighted';
+import { analyzeWeighted } from '@/lib/analyzeWeighted';
 
-// 5 основных критериев, которые показываем в Quick-режиме
+// Top 5 keys to display in Quick mode (the overall score is still full)
 const QUICK_KEYS = [
   'robots_txt',
   'sitemap_xml',
@@ -12,10 +11,22 @@ const QUICK_KEYS = [
   'meta_description',
 ] as const;
 
-type Mode = 'quick' | 'full';
+type CheckItem = {
+  key: string;
+  name: string;
+  passed: boolean;
+  description?: string;
+  weight?: number;
+  score?: number;
+};
 
-function isValidHttpUrl(value: string | null): value is string {
-  if (!value) return false;
+type AnalyzeReturn = {
+  score: number;                 // 0..100
+  interpretation: string;        // e.g. "Excellent / Moderate / Poor"
+  checks: CheckItem[];           // all checks (15+)
+};
+
+function isValidHttpUrl(value: string): boolean {
   try {
     const u = new URL(value);
     return u.protocol === 'http:' || u.protocol === 'https:';
@@ -24,66 +35,38 @@ function isValidHttpUrl(value: string | null): value is string {
   }
 }
 
-// Общий обработчик (GET/POST сходятся сюда)
-async function handle(url: string, mode: Mode) {
-  if (!isValidHttpUrl(url)) {
-    return NextResponse.json(
-      { error: 'Invalid URL. Use http(s)://...' },
-      { status: 400 }
-    );
-  }
-
-  try {
-    // ВАЖНО: считаем ПОЛНЫЙ анализ один раз (ожидаем 2-й аргумент = режим)
-    // Если ваша analyzeWeighted ожидает именно 'full' | 'quick', используем 'full'.
-    const full = await analyzeWeighted(url, 'full');
-
-    // full должен вернуть минимум: { score: number, checks: Array<{ key: string, passed: boolean, ... }>, interpretation?: string }
-    const score = full.score ?? 0;
-    const interpretation =
-      full.interpretation ??
-      (score >= 80 ? 'Excellent' : score >= 60 ? 'Moderate' : 'Low');
-
-    const allChecks = Array.isArray(full.checks) ? full.checks : [];
-
-    const quickChecks =
-      mode === 'quick'
-        ? allChecks.filter((c: any) => QUICK_KEYS.includes(String(c.key) as any))
-        : allChecks;
-
-    return NextResponse.json(
-      {
-        mode,
-        url,
-        score, // одинаковый процент для обоих режимов
-        interpretation,
-        checks: quickChecks,
-      },
-      { status: 200 }
-    );
-  } catch (err) {
-    console.error('Analyze failed:', err);
-    return NextResponse.json(
-      { error: 'Analyze failed. Please try again.' },
-      { status: 500 }
-    );
-  }
-}
-
-// GET /api/check?url=...&mode=quick|full
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const url = searchParams.get('url');
-  const modeParam = (searchParams.get('mode') || 'quick').toLowerCase();
-  const mode: Mode = modeParam === 'full' ? 'full' : 'quick';
-  return handle(url as string, mode);
-}
-
-// POST /api/check  { url, mode }
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  const url = body?.url as string | undefined;
-  const modeParam = (body?.mode || 'quick').toLowerCase();
-  const mode: Mode = modeParam === 'full' ? 'full' : 'quick';
-  return handle(url ?? '', mode);
+  try {
+    const { url, mode } = await req.json() as { url?: string; mode?: 'quick' | 'full' };
+
+    if (!url || !isValidHttpUrl(url)) {
+      return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
+    }
+
+    // Run ONE full analysis so Quick and Full share the same percent
+    const full: AnalyzeReturn = await analyzeWeighted(url);
+
+    if (mode === 'quick') {
+      const results = full.checks.filter(c => QUICK_KEYS.includes(c.key as any));
+      return NextResponse.json({
+        mode: 'quick',
+        url,
+        score: full.score,
+        interpretation: full.interpretation,
+        checks: results,
+      });
+    }
+
+    // Full mode (default)
+    return NextResponse.json({
+      mode: 'full',
+      url,
+      score: full.score,
+      interpretation: full.interpretation,
+      checks: full.checks,
+    });
+  } catch (err) {
+    console.error('Analyze error:', err);
+    return NextResponse.json({ error: 'Analyze failed' }, { status: 500 });
+  }
 }
