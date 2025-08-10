@@ -20,7 +20,7 @@ export interface AnalyzeResult {
   url: string;
   mode: Mode;
   items: CheckItem[];
-  score: number;
+  score: number; // SAME for quick & pro (always weighted over all 15)
   interpretation: ReturnType<typeof interpret>;
 }
 
@@ -29,11 +29,10 @@ const DEFAULT_UA =
 
 export async function analyze(rawUrl: string, mode: Mode): Promise<AnalyzeResult> {
   const { origin, url } = normalizeUrl(rawUrl);
-
   const { html, headers, schemeOk } = await fetchHTML(url);
-  const keys = mode === "quick" ? QUICK_KEYS : PRO_KEYS;
 
-  const results: Record<CheckKey, CheckItem> = {
+  // Build all 15 checks first
+  const allResults: Record<CheckKey, CheckItem> = {
     robots_txt: await checkRobotsTxt(origin),
     sitemap_xml: await checkSitemap(origin),
     x_robots_tag: checkXRobots(headers),
@@ -56,19 +55,12 @@ export async function analyze(rawUrl: string, mode: Mode): Promise<AnalyzeResult
     page_404: await check404(origin),
   };
 
-  const items: CheckItem[] = keys.map((k) => results[k]);
+  // Score is ALWAYS weighted over ALL 15 checks
+  const score = calcWeightedScore(allResults);
 
-  const score =
-    mode === "quick"
-      ? Math.round((items.filter((i) => i.passed).length / 5) * 100)
-      : clamp0to100(
-          Math.round(
-            items.reduce(
-              (acc, i) => acc + (i.passed ? weightOf(i.key) : 0),
-              0
-            )
-          )
-        );
+  // Items to display:
+  const displayKeys = mode === "quick" ? QUICK_KEYS : PRO_KEYS;
+  const items: CheckItem[] = displayKeys.map((k) => allResults[k]);
 
   return {
     url,
@@ -79,8 +71,17 @@ export async function analyze(rawUrl: string, mode: Mode): Promise<AnalyzeResult
   };
 }
 
-/* =============== helpers =============== */
+/* ---- scoring ---- */
+function calcWeightedScore(all: Record<CheckKey, CheckItem>): number {
+  const totalWeight = PRO_KEYS.reduce((a, k) => a + weightOf(k), 0); // = 100
+  const passedWeight = PRO_KEYS.reduce(
+    (a, k) => a + (all[k].passed ? weightOf(k) : 0),
+    0
+  );
+  return Math.round((passedWeight / totalWeight) * 100);
+}
 
+/* ---- helpers ---- */
 function normalizeUrl(input: string): { origin: string; url: string } {
   let u = input.trim();
   if (!/^https?:\/\//i.test(u)) u = "https://" + u;
@@ -121,16 +122,11 @@ async function fetchHTML(
   return { html, headers: res.headers, schemeOk };
 }
 
-/* =============== simple HTML checks (no external libs) =============== */
-
+/* ---- simple HTML checks (regex-based, no external libs) ---- */
 function textMatch(html: string | null, re: RegExp) {
   if (!html) return null;
   const m = html.match(re);
   return m ? m[1] || m[0] : null;
-}
-function exists(html: string | null, re: RegExp) {
-  if (!html) return false;
-  return re.test(html);
 }
 function stripTags(s: string) {
   return s.replace(/<[^>]*>/g, "").trim();
@@ -177,10 +173,11 @@ function checkXRobots(headers: Headers) {
 }
 
 function checkMetaRobots(html: string | null) {
-  const content = textMatch(
-    html,
-    /<meta[^>]+name=["']robots["'][^>]+content=["']([^"']*)["'][^>]*>/i
-  ) || "";
+  const content =
+    textMatch(
+      html,
+      /<meta[^>]+name=["']robots["'][^>]+content=["']([^"']*)["'][^>]*>/i
+    ) || "";
   const blocked = /\bnoindex\b|\bnone\b/i.test(content);
   return item(
     "meta_robots",
@@ -248,19 +245,27 @@ function checkOpenGraph(html: string | null) {
 
 function checkH1(html: string | null) {
   const h1 = stripTags(textMatch(html, /<h1[^>]*>([\s\S]*?)<\/h1>/i) || "");
-  return item("h1_present", h1.length > 0, h1 ? `H1: ${truncate(h1, 120)}` : "Missing H1");
+  return item(
+    "h1_present",
+    h1.length > 0,
+    h1 ? `H1: ${truncate(h1, 120)}` : "Missing H1"
+  );
 }
 
 function checkJSONLD(html: string | null) {
   if (!html) return item("structured_data", false, "No JSON-LD structured data");
-  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  const re =
+    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let ok = false;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
     try {
       const txt = m[1];
       const json = JSON.parse(txt);
-      if (json) { ok = true; break; }
+      if (json) {
+        ok = true;
+        break;
+      }
     } catch {}
   }
   return item(
@@ -305,12 +310,15 @@ function checkAltAttributes(html: string | null) {
 
 async function checkFavicon(html: string | null, origin: string) {
   const linkHref =
-    textMatch(html, /<link[^>]+rel=["'](?:shortcut\s+icon|icon)["'][^>]+href=["']([^"']+)["'][^>]*>/i) || "";
-  if (linkHref) {
-    return item("favicon", true, `Icon: ${linkHref}`);
-  }
+    textMatch(
+      html,
+      /<link[^>]+rel=["'](?:shortcut\s+icon|icon)["'][^>]+href=["']([^"']+)["'][^>]*>/i
+    ) || "";
+  if (linkHref) return item("favicon", true, `Icon: ${linkHref}`);
   try {
-    const res = await fetchWithTimeout(origin + "/favicon.ico", { method: "HEAD" });
+    const res = await fetchWithTimeout(origin + "/favicon.ico", {
+      method: "HEAD",
+    });
     const ok = res.ok;
     return item("favicon", ok, ok ? "/favicon.ico found" : "No favicon");
   } catch {
@@ -335,14 +343,10 @@ async function check404(origin: string) {
   }
 }
 
-/* =============== utils =============== */
-
+/* ---- utils ---- */
 function item(key: CheckKey, passed: boolean, description: string) {
   return { key, name: nameOf(key), passed, description };
 }
 function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}
-function clamp0to100(n: number) {
-  return Math.max(0, Math.min(100, n));
 }
