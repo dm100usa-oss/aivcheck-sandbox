@@ -1,16 +1,13 @@
-import type { CheckKey } from "./score";
-
-export type CheckResult = {
-  key: CheckKey | string;
+// lib/types.ts
+export type Check = {
+  key?: string;
   name: string;
   passed: boolean;
   description: string;
 };
 
-export type AnalyzeResponse = {
-  url: string;
-  mode: "quick" | "full";
-  results: CheckResult[];
-  score: number;
-  interpretation: "Low" | "Moderate" | "Good" | "Excellent";
+export type AnalyzeWeightedReturn = {
+  score: number; // 0..100
+  checks: Check[]; // length = 15 for full audit
+  interpretation?: string; // e.g., "Excellent" | "Moderate" | "Low"
 };
