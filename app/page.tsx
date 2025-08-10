@@ -9,42 +9,32 @@ type AnalyzeResponse = {
   mode: "quick" | "full";
   results: Check[];
   score: number;
-  interpretation: "Low" | "Moderate" | "Good" | "Excellent";
+  interpretation: "Low" | "Moderate" | "Good" | "Excellent" | string;
 };
 
-// Color helpers
-const COLOR_OK = "#059669";      // emerald-600
-const COLOR_WARN = "#F59E0B";    // amber-500 (reserved if needed)
-const COLOR_BAD = "#DC2626";     // red-600
-const DOT_CLASS_OK = "bg-emerald-600";
-const DOT_CLASS_BAD = "bg-red-600";
-
-// Quick labels (no percentages)
-function labelFor(passed: boolean): { text: string; className: string } {
-  return passed ? { text: "Good", className: "text-emerald-700" } : { text: "Insufficient", className: "text-red-600" };
-}
+const DOT_OK = "bg-emerald-600";
+const DOT_BAD = "bg-red-600";
 
 export default function HomePage() {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<"idle" | "quick" | "full">("idle");
   const [checkingText, setCheckingText] = useState("Checking");
-  const dotsRef = useRef<number>(0);
+  const dotsRef = useRef(0);
   const [data, setData] = useState<AnalyzeResponse | null>(null);
 
-  // animated "Checking..."
   useEffect(() => {
     if (loading === "idle") return;
-    const i = setInterval(() => {
+    const id = setInterval(() => {
       dotsRef.current = (dotsRef.current + 1) % 4;
       setCheckingText("Checking" + ".".repeat(dotsRef.current));
     }, 400);
-    return () => clearInterval(i);
+    return () => clearInterval(id);
   }, [loading]);
 
-  const isValidUrl = (value: string) => {
+  const isValidUrl = (v: string) => {
     try {
-      const u = new URL(value);
+      const u = new URL(v);
       return u.protocol === "http:" || u.protocol === "https:";
     } catch {
       return false;
@@ -52,7 +42,6 @@ export default function HomePage() {
   };
 
   const run = async (mode: "quick" | "full") => {
-    // Validation
     if (!url || !isValidUrl(url)) {
       setError("Please enter a valid website URL");
       return;
@@ -76,26 +65,21 @@ export default function HomePage() {
     }
   };
 
-  // Clear input fast
   const clearInput = () => {
     setUrl("");
     setError(null);
   };
 
-  // For Quick: show only 5 checks (API already returns sliced list),
-  // For Full: show all returned.
   const checks = useMemo(() => data?.results ?? [], [data]);
 
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-4 py-10">
-        {/* Header */}
         <h1 className="text-4xl font-bold tracking-tight mb-3 text-gray-900 text-center">AI Visibility Pro</h1>
         <p className="text-gray-600 mb-8 text-center">
           Check if your website is visible to AI assistants like ChatGPT, Bing Copilot, Gemini, and Grok
         </p>
 
-        {/* URL input with clear button */}
         <div className="w-full max-w-xl mx-auto relative">
           <input
             type="text"
@@ -122,7 +106,6 @@ export default function HomePage() {
           {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
         </div>
 
-        {/* Action buttons */}
         <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-center">
           <button
             onClick={() => run("quick")}
@@ -142,16 +125,15 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Result */}
         {data && (
           <div className="mt-10">
-            {/* Score + donut */}
             <div className="flex items-center gap-6 flex-col sm:flex-row">
               <Donut percent={data.score} />
               <div className="text-center sm:text-left">
                 <div className="text-3xl font-semibold">{data.score}%</div>
                 <div className="text-sm text-gray-600 mt-1">
-                  Mode: <span className="font-medium">{data.mode === "quick" ? "Quick Check" : "Full Audit"}</span> · Interpretation: <span className="font-medium">{data.interpretation}</span>
+                  Mode: <span className="font-medium">{data.mode === "quick" ? "Quick Check" : "Full Audit"}</span> ·{" "}
+                  Interpretation: <span className="font-medium">{data.interpretation}</span>
                 </div>
                 <div className="text-sm text-gray-500 mt-2 break-all">URL: {data.url}</div>
                 {data.mode === "quick" && (
@@ -162,29 +144,25 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Checks list */}
             <div className="mt-8">
               <h2 className="text-lg font-semibold mb-3">{data.mode === "quick" ? "Core criteria" : "All checks"}</h2>
               <ul className="divide-y divide-gray-200 rounded-xl border border-gray-200">
                 {checks.map((r, i) => {
                   const ok = r.passed;
-                  const dotClass = ok ? DOT_CLASS_OK : DOT_CLASS_BAD;
                   return (
                     <li key={r.name + i} className="px-4 py-3 flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <span className={`mt-1 h-3 w-3 rounded-full ${dotClass}`} />
+                        <span className={`mt-1 h-3 w-3 rounded-full ${ok ? DOT_OK : DOT_BAD}`} />
                         <div>
                           <div className="font-medium">{r.name}</div>
                           <div className="text-sm text-gray-600">{r.description}</div>
                         </div>
                       </div>
                       {data.mode === "quick" ? (
-                        // In Quick mode show text labels instead of percentages
                         <div className={`text-sm font-semibold ${ok ? "text-emerald-700" : "text-red-600"}`}>
-                          {labelFor(ok).text}
+                          {ok ? "Good" : "Insufficient"}
                         </div>
                       ) : (
-                        // In Full mode show PASS/FAIL
                         <div className={`text-sm font-semibold ${ok ? "text-emerald-600" : "text-red-600"}`}>
                           {ok ? "PASS" : "FAIL"}
                         </div>
@@ -197,9 +175,8 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Footer */}
         <div className="mt-16 text-center text-xs text-gray-400">
-          All percentages are approximate and for informational purposes only.
+          Visibility scores are approximate and for informational purposes only.
         </div>
       </div>
     </main>
