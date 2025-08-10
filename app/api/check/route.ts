@@ -1,35 +1,77 @@
-import { NextRequest, NextResponse } from "next/server";
-import { analyzeWeighted } from "@/lib/analyzeWeighted";
-import type { AnalyzeWeightedReturn, Check } from "@/lib/types";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { analyzeWeighted as _analyzeWeighted } from '@/lib/analyzeWeighted';
 
-export const runtime = "nodejs";
+// NOTE: we always compute FULL analysis once so that Quick and Full share the same percent.
+// Then we only trim the list of checks for Quick UI.
+const FIVE = 5;
 
-const QUICK_KEYS: string[] = [
-  "robots_txt",
-  "sitemap_xml",
-  "title",
-  "meta_description",
-  "structured_data",
-];
-
-export async function POST(req: NextRequest) {
+function isHttpUrl(u: string): boolean {
   try {
-    const { url, mode } = (await req.json()) as { url?: string; mode?: "quick" | "full" };
-
-    if (!url) {
-      return NextResponse.json({ error: "URL is required" }, { status: 400 });
-    }
-
-    // One full analysis so Quick and Full share the same percent
-    const { score, checks, interpretation } = (await analyzeWeighted(url)) as AnalyzeWeightedReturn;
-
-    if (mode === "quick") {
-      const results = checks.filter((c: Check) => QUICK_KEYS.includes(String(c.key)));
-      return NextResponse.json({ url, mode: "quick", results, score, interpretation });
-    }
-
-    return NextResponse.json({ url, mode: "full", results: checks, score, interpretation });
+    const parsed = new URL(u);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
-    return NextResponse.json({ error: "Analyze failed" }, { status: 500 });
+    return false;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+
+  const url = (searchParams.get('url') || '').trim();
+  // mode is optional: 'quick' | 'full'. Default = 'quick' (UI can change later)
+  const mode = ((searchParams.get('mode') || 'quick').toLowerCase() === 'full'
+    ? 'full'
+    : 'quick') as 'quick' | 'full';
+
+  if (!url) {
+    return NextResponse.json(
+      { error: 'Missing "url" query parameter.' },
+      { status: 400 }
+    );
+  }
+  if (!isHttpUrl(url)) {
+    return NextResponse.json(
+      { error: 'Invalid URL. Use http(s)://example.com' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // IMPORTANT: analyzeWeighted currently expects 2 args -> pass a second arg.
+    // We pass 'full' intentionally to force full analysis once.
+    const analyzeWeighted = _analyzeWeighted as any;
+    const { score, checks, interpretation } = (await analyzeWeighted(
+      url,
+      'full'
+    )) as {
+      score: number;
+      interpretation?: string;
+      checks: Array<{
+        key: string;
+        name: string;
+        passed: boolean;
+        description?: string;
+        weight?: number;
+      }>;
+    };
+
+    const payload = {
+      mode,
+      url,
+      score,
+      interpretation: interpretation || null,
+      checks: mode === 'quick' ? checks.slice(0, FIVE) : checks,
+    };
+
+    return NextResponse.json(payload, { status: 200 });
+  } catch (e: any) {
+    return NextResponse.json(
+      {
+        error: 'Analysis failed',
+        details: typeof e?.message === 'string' ? e.message : String(e),
+      },
+      { status: 500 }
+    );
   }
 }
