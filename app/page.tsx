@@ -44,7 +44,6 @@ export default function Home() {
     if (mode === "quick") setLoadingQuick(true);
     else setLoadingPro(true);
 
-    // keep dots visible at least 800ms for professional feel
     const started = Date.now();
     const q = new URLSearchParams({ url: u }).toString();
     router.push(`/check/${mode}?${q}`);
@@ -56,7 +55,6 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 pt-20 pb-16">
-      {/* Title */}
       <h1 className="text-center text-4xl font-semibold tracking-tight mb-4">
         AI Visibility Pro
       </h1>
@@ -65,7 +63,6 @@ export default function Home() {
         and Grok.
       </p>
 
-      {/* URL input */}
       <div className="mb-2">
         <input
           type="url"
@@ -83,7 +80,6 @@ export default function Home() {
       </div>
       {error && <div className="mb-3 text-sm text-rose-600">{error}</div>}
 
-      {/* Quick button */}
       <button
         onClick={() => go("quick")}
         disabled={loadingQuick || loadingPro}
@@ -101,7 +97,6 @@ export default function Home() {
         Instant results, 5-point basic check, simple recommendations
       </p>
 
-      {/* Pro button */}
       <button
         onClick={() => go("pro")}
         disabled={loadingQuick || loadingPro}
@@ -119,11 +114,12 @@ export default function Home() {
         15-point audit, detailed PDF report, dev-ready checklist, results via email
       </p>
 
-      {/* Footer */}
       <footer className="mt-12 text-center text-xs text-neutral-500">
         © 2025 MYAIID. All rights reserved.
         <br />
-        Visibility scores are estimated and based on publicly available data. Not legal advice.
+        <span className="opacity-60">
+          Visibility scores are estimated and based on publicly available data. Not legal advice.
+        </span>
       </footer>
     </main>
   );
