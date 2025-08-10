@@ -33,4 +33,4 @@ export const WEIGHTS: Record<CheckKey, number> = {
   status_redirects: 7,
 };
 
-export const TOTAL_WEIGHT = Object.values(WEIGHTS).reduce((a, b) => a + b, 0); // 100
+export const TOTAL_WEIGHT = Object.values(WEIGHTS).reduce((a, b) => a + b, 0);
