@@ -16,7 +16,7 @@ async function head(url: string) {
   try {
     const res = await fetch(url, { method: "HEAD", redirect: "follow", signal: controller.signal });
     return res;
-  } catch (_e) {
+  } catch {
     return null;
   } finally {
     clearTimeout(t);
@@ -31,7 +31,7 @@ async function get(url: string) {
     if (!res.ok) return { ok: false, status: res.status, text: "" };
     const text = await res.text();
     return { ok: true, status: res.status, text };
-  } catch (_e) {
+  } catch {
     return { ok: false, status: 0, text: "" };
   } finally {
     clearTimeout(t);
@@ -45,7 +45,11 @@ function interpret(score: number): "Low" | "Moderate" | "Good" | "Excellent" {
   return "Low";
 }
 
-export async function analyzeWeighted(rawUrl: string): Promise<{ results: CheckResult[]; score: number; interpretation: ReturnType<typeof interpret> }> {
+export async function analyzeWeighted(rawUrl: string): Promise<{
+  results: CheckResult[];
+  score: number;
+  interpretation: ReturnType<typeof interpret>;
+}> {
   const url = normUrl(rawUrl);
 
   const headRes = await head(url);
@@ -94,8 +98,9 @@ export async function analyzeWeighted(rawUrl: string): Promise<{ results: CheckR
 
   const metaAi = getAttr('meta[name="ai"]', "content").trim();
   let aiTxtPassed = false;
-  if (metaAi) aiTxtPassed = true;
-  else {
+  if (metaAi) {
+    aiTxtPassed = true;
+  } else {
     const aiTxtUrl = new URL("/.well-known/ai.txt", url).toString();
     const aiTxtRes = await get(aiTxtUrl);
     aiTxtPassed = aiTxtRes.ok && aiTxtRes.text.length > 0;
@@ -115,16 +120,16 @@ export async function analyzeWeighted(rawUrl: string): Promise<{ results: CheckR
 
   const statusPassed = statusOk && status >= 200 && status < 400;
 
-  const items: Array<{ key: CheckKey; name: string; passed: boolean; description: string }> = [
-    { key: "robots_txt", name: "robots.txt", passed: robotsTxtPassed, description: robotsTxtPassed ? "robots.txt is present" : "robots.txt is missing or not accessible" },
-    { key: "sitemap_xml", name: "sitemap.xml", passed: sitemapXmlPassed, description: sitemapXmlPassed ? "sitemap.xml found" : "Missing sitemap.xml" },
-    { key: "x_robots_tag", name: "X-Robots-Tag", passed: xRobotsPassed, description: xRobotsHeader ? `X-Robots-Tag: ${xRobotsHeader}` : "No X-Robots-Tag header (OK)" },
+  const items: CheckResult[] = [
+    { key: "robots_txt", name: "robots.txt", passed: robotsTxtPassed, description: robotsTxtPassed ? "robots.txt is present" : "robots.txt missing or not accessible" },
+    { key: "sitemap_xml", name: "sitemap.xml", passed: sitemapXmlPassed, description: sitemapXmlPassed ? "sitemap.xml found" : "sitemap.xml missing" },
+    { key: "x_robots_tag", name: "X-Robots-Tag (header)", passed: xRobotsPassed, description: xRobotsHeader ? `X-Robots-Tag: ${xRobotsHeader}` : "No X-Robots-Tag header (OK)" },
     { key: "meta_robots", name: "Meta robots", passed: metaRobotsPassed, description: metaRobotsContent ? `Meta robots: ${metaRobotsContent}` : "No meta robots (OK)" },
     { key: "canonical", name: "Canonical", passed: canonicalPassed, description: canonicalPassed ? `Canonical: ${canonicalHref}` : "No canonical link" },
     { key: "title", name: "Title tag", passed: titlePassed, description: titlePassed ? `Title: ${titleText}` : "Missing <title>" },
-    { key: "meta_description", name: "Meta description", passed: metaDescPassed, description: metaDescPassed ? `Description: ${metaDesc[:160]}` : "Missing meta description" },
-    { key: "og_title", name: "OG title", passed: ogTitlePassed, description: ogTitlePassed ? `og:title present` : "Missing og:title" },
-    { key: "og_description", name: "OG description", passed: ogDescPassed, description: ogDescPassed ? `og:description present` : "Missing og:description" },
+    { key: "meta_description", name: "Meta description", passed: metaDescPassed, description: metaDescPassed ? `Description: ${metaDesc.slice(0, 160)}` : "Missing meta description" },
+    { key: "og_title", name: "OG title", passed: ogTitlePassed, description: ogTitlePassed ? "og:title present" : "Missing og:title" },
+    { key: "og_description", name: "OG description", passed: ogDescPassed, description: ogDescPassed ? "og:description present" : "Missing og:description" },
     { key: "h1", name: "H1", passed: h1Passed, description: h1Passed ? "<h1> found" : "Missing <h1>" },
     { key: "structured_data", name: "Structured data (JSON-LD)", passed: structuredDataPassed, description: structuredDataPassed ? "JSON-LD present" : "No JSON-LD" },
     { key: "ai_instructions", name: "AI instructions", passed: aiTxtPassed, description: aiTxtPassed ? "AI directives present (meta or .well-known/ai.txt)" : "No AI directives found" },
@@ -135,7 +140,8 @@ export async function analyzeWeighted(rawUrl: string): Promise<{ results: CheckR
 
   let score = 0;
   for (const it of items) {
-    if (it.passed) score += WEIGHTS[it.key];
+    const k = (it.key as CheckKey);
+    if (k in WEIGHTS && it.passed) score += WEIGHTS[k];
   }
   const finalScore = Math.max(0, Math.min(100, Math.round((score / TOTAL_WEIGHT) * 100)));
 
