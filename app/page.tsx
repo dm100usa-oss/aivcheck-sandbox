@@ -34,27 +34,40 @@ export default function Home() {
   const isValid = (u: string) =>
     /^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(u.trim());
 
-  const go = useCallback(
-    async (mode: "quick" | "pro") => {
-      if (loading) return; // prevent double click
-      const u = url.trim();
-      if (!isValid(u)) {
-        setError("Please enter a valid URL (including http/https).");
-        return;
-      }
-      setError(null);
-      setLoading(mode);
+  const go = useCallback(async (mode: "quick" | "pro") => {
+    if (loading) return;
+    const u = url.trim();
+    if (!isValid(u)) {
+      setError("Please enter a valid URL (including http/https).");
+      return;
+    }
+    setError(null);
+    setLoading(mode);
 
-      // SHOW "Checking…" FIRST, THEN NAVIGATE (guaranteed min 2.2s)
-      const minDuration = 2200;
-      await new Promise((r) => setTimeout(r, minDuration));
+    // show “Checking …” at least 2.2s
+    const minDuration = 2200;
+    const started = Date.now();
 
-      const q = new URLSearchParams({ url: u }).toString();
-      router.push(`/check/${mode}?${q}`);
-      // не сбрасываем loading: навигация унесёт нас на новую страницу
-    },
-    [url, loading, router]
-  );
+    // precheck URL availability (avoid showing Pay on dead sites)
+    let status: "ok" | "error" = "ok";
+    try {
+      const resp = await fetch("/api/precheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: u }),
+      });
+      const json = await resp.json();
+      status = json?.ok ? "ok" : "error";
+    } catch {
+      status = "error";
+    }
+
+    const left = Math.max(0, minDuration - (Date.now() - started));
+    await new Promise((r) => setTimeout(r, left));
+
+    const q = new URLSearchParams({ url: u, status }).toString();
+    router.push(`/preview/${mode}?${q}`);
+  }, [url, loading, router]);
 
   const clear = () => setUrl("");
 
@@ -97,16 +110,14 @@ export default function Home() {
       </div>
       {error && <div className="mb-3 text-sm text-rose-600">{error}</div>}
 
-      {/* Quick button */}
+      {/* Quick */}
       <button
         onClick={() => go("quick")}
         disabled={!!loading}
         className="w-full rounded-md bg-blue-600 px-4 py-3 text-white text-base font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors"
       >
         {loading === "quick" ? (
-          <span className="inline-flex items-center">
-            Checking<Dots />
-          </span>
+          <span className="inline-flex items-center">Checking<Dots /></span>
         ) : (
           "Quick Check $9.99"
         )}
@@ -115,16 +126,14 @@ export default function Home() {
         Instant results, 5-point basic check, simple recommendations
       </p>
 
-      {/* Pro button */}
+      {/* Pro */}
       <button
         onClick={() => go("pro")}
         disabled={!!loading}
         className="w-full rounded-md bg-green-600 px-4 py-3 text-white text-base font-medium hover:bg-green-700 disabled:opacity-60 transition-colors"
       >
         {loading === "pro" ? (
-          <span className="inline-flex items-center">
-            Checking<Dots />
-          </span>
+          <span className="inline-flex items-center">Checking<Dots /></span>
         ) : (
           "Business Pro Audit $19.99"
         )}
@@ -134,7 +143,7 @@ export default function Home() {
       </p>
 
       <footer className="mt-12 text-center text-xs text-neutral-500">
-        © 2025 MYAIID. All rights reserved.
+        © 2025 AI Visibility Pro. All rights reserved.
         <br />
         <span className="opacity-60">
           Visibility scores are estimated and based on publicly available data. Not legal advice.
