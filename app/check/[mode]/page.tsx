@@ -22,24 +22,7 @@ type ApiResult = {
   detail?: string;
 };
 
-/* smooth "Checking …" (двигаются только точки) */
-function LoadingDots() {
-  return (
-    <span className="inline-flex w-[1.7ch] justify-start tabular-nums">
-      <span className="dot">.</span>
-      <span className="dot dot2">.</span>
-      <span className="dot dot3">.</span>
-      <style jsx>{`
-        .dot { opacity:.2; animation:aiv-dots 1200ms infinite; }
-        .dot2 { animation-delay:200ms; }
-        .dot3 { animation-delay:400ms; }
-        @keyframes aiv-dots { 0%{opacity:.2} 30%{opacity:1} 60%{opacity:.2} 100%{opacity:.2} }
-      `}</style>
-    </span>
-  );
-}
-
-/* простой SVG-донат */
+/* donut for final result */
 function Donut({ value }: { value: number }) {
   const r = 60;
   const C = 2 * Math.PI * r;
@@ -58,6 +41,30 @@ function Donut({ value }: { value: number }) {
         {value}%
       </text>
     </svg>
+  );
+}
+
+/* subtle skeleton while loading — no text “Checking” */
+function Skeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-[160px,1fr] gap-6 animate-pulse">
+      <div className="flex items-center justify-center">
+        <svg width="140" height="140" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="60" stroke="#E5E7EB" strokeWidth="18" fill="none" />
+        </svg>
+      </div>
+      <ul className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <li key={i} className="flex items-start justify-between gap-3 rounded-md border border-neutral-200 px-3 py-3">
+            <div className="flex-1">
+              <div className="h-3 w-40 bg-neutral-200 rounded mb-2" />
+              <div className="h-3 w-64 bg-neutral-200 rounded" />
+            </div>
+            <div className="h-6 w-14 bg-neutral-200 rounded-md" />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -87,7 +94,7 @@ export default function ResultPage({
         });
         const json: ApiResult = await res.json();
 
-        // не исчезать мгновенно
+        // keep skeleton visible at least 900ms for smoothness
         const left = Math.max(0, 900 - (Date.now() - mountedAt.current));
         await new Promise((r) => setTimeout(r, left));
         if (cancelled) return;
@@ -112,9 +119,7 @@ export default function ResultPage({
       setErr("URL is missing.");
       setLoading(false);
     }
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [url, mode]);
 
   const items = data?.items || [];
@@ -123,7 +128,7 @@ export default function ResultPage({
     <main className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-center text-2xl font-semibold mb-6">AI Visibility Result</h1>
 
-      <div className="rounded-xl border border-neutral-200 p-6">
+      <div className="rounded-xl border border-neutral-200 p-6 shadow-sm">
         <div className="mb-4 text-sm text-neutral-700">
           <div>Mode: <span className="font-medium">{mode}</span></div>
           <div className="truncate">
@@ -131,16 +136,21 @@ export default function ResultPage({
           </div>
           {data && (
             <div>
-              Interpretation: <span className="font-medium">{data.interpretation}</span>
+              Interpretation:{" "}
+              <span className={[
+                "inline-block px-2 py-0.5 rounded text-xs font-semibold align-middle",
+                data.interpretation === "Excellent" ? "bg-emerald-100 text-emerald-800" :
+                data.interpretation === "Good" ? "bg-blue-100 text-blue-800" :
+                data.interpretation === "Moderate" ? "bg-amber-100 text-amber-800" :
+                "bg-rose-100 text-rose-800"
+              ].join(" ")}>
+                {data.interpretation}
+              </span>
             </div>
           )}
         </div>
 
-        {loading && (
-          <div className="py-8 text-center text-neutral-800">
-            Checking <LoadingDots />
-          </div>
-        )}
+        {loading && <Skeleton />}
 
         {!loading && err && (
           <div className="rounded-md border border-rose-200 bg-rose-50 p-4 text-rose-700">
@@ -149,28 +159,19 @@ export default function ResultPage({
         )}
 
         {!loading && !err && data && (
-          <div className="grid grid-cols-1 md:grid-cols-[160px,1fr] gap-6">
-            <div className="flex items-center justify-center">
+          <div className="grid grid-cols-1 md:grid-cols-[180px,1fr] gap-6 md:pl-2">
+            <div className="flex items-start justify-center">
               <Donut value={data.score} />
             </div>
             <ul className="space-y-2">
               {items.map((it) => (
-                <li
-                  key={it.key}
-                  className="flex items-start justify-between gap-3 rounded-md border border-neutral-200 px-3 py-2"
-                >
+                <li key={it.key} className="flex items-start justify-between gap-3 rounded-md border border-neutral-200 px-3 py-2">
                   <div className="text-sm">
                     <div className="font-medium">{it.name}</div>
                     <div className="text-neutral-600">{it.description}</div>
                   </div>
-                  <span
-                    className={[
-                      "ml-2 shrink-0 rounded-md px-2 py-1 text-xs font-semibold",
-                      it.passed
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-rose-100 text-rose-800",
-                    ].join(" ")}
-                  >
+                  <span className={["ml-2 shrink-0 rounded-md px-2 py-1 text-xs font-semibold",
+                    it.passed ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"].join(" ")}>
                     {it.passed ? "Passed" : "Failed"}
                   </span>
                 </li>
@@ -180,14 +181,13 @@ export default function ResultPage({
         )}
 
         <p className="mt-6 text-center text-xs text-neutral-500">
-          Visibility scores are estimated and based on publicly available data. Not legal advice.
+          <span className="opacity-60">
+            Visibility scores are estimated and based on publicly available data. Not legal advice.
+          </span>
         </p>
 
         <div className="mt-6 flex justify-center">
-          <Link
-            href="/"
-            className="rounded-md border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-50"
-          >
+          <Link href="/" className="rounded-md border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-50">
             New Check
           </Link>
         </div>
