@@ -5,6 +5,33 @@ import { useRouter } from "next/navigation";
 
 type Mode = "quick" | "pro";
 
+// Agreed lists
+const ITEMS_QUICK = [
+  "AI Visibility Percentage",
+  "AI Readability of Text",
+  "AI Access to Key Pages",
+  "AI Freshness",
+  "AI-Usable Structure of Information",
+];
+
+const ITEMS_FULL = [
+  "AI Visibility Percentage",
+  "AI Readability of Text",
+  "AI Access to Key Pages",
+  "AI Freshness",
+  "AI-Usable Structure of Information",
+  "AI Can Find Your Website",
+  "All Important Pages Are Visible to AI",
+  "Key Facts Are Marked for AI",
+  "Page Titles Clearly Explain Content",
+  "No Confusing Duplicate Pages for AI",
+  "Pages Have Enough Useful Text for AI",
+  "Images Have Descriptions AI Can Read",
+  "Content Is Directly Accessible to AI",
+  "No Barriers Stopping AI From Reading",
+  "AI and Search Engines Can Reach Your Pages",
+];
+
 export default function PreviewPage({
   params,
   searchParams,
@@ -17,40 +44,30 @@ export default function PreviewPage({
   const status = (searchParams?.status || "ok").toLowerCase(); // "ok" | "error"
   const router = useRouter();
 
-  // brand colors
-  const color =
+  // Colors by mode
+  const colorBtn =
     mode === "quick"
       ? "bg-blue-600 hover:bg-blue-700 text-white"
       : "bg-green-600 hover:bg-green-700 text-white";
-  const dot = mode === "quick" ? "bg-blue-600" : "bg-green-600";
+  const colorDot = mode === "quick" ? "bg-blue-600" : "bg-green-600";
 
-  // human-friendly, AI-centric list
-  const items = useMemo(
-    () => [
-      "AI Visibility Percentage",
-      "AI Readability of Text",
-      "AI Access to Key Pages",
-      "AI Freshness (How quickly updates are seen)",
-      "AI-Usable Structure of Information",
-    ],
-    []
-  );
+  // Items by mode
+  const items = useMemo(() => (mode === "pro" ? ITEMS_FULL : ITEMS_QUICK), [mode]);
 
-  // email only for Pro (PDF delivery)
+  // Email (only for pro)
   const [email, setEmail] = useState("");
   const emailValid =
-    mode === "pro"
-      ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-      : true;
+    mode === "pro" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) : true;
 
-  // TODO: connect to Stripe/PayPal; pass url and (for pro) email
+  // Payment (stub)
   const pay = () => {
-    // Example next step:
-    // router.push(`/checkout/${mode}?url=${encodeURIComponent(url)}${mode === "pro" ? `&email=${encodeURIComponent(email)}` : ""}`);
     alert("Payment flow opens here (Stripe/PayPal).");
   };
 
   const back = () => router.push("/");
+
+  // Button label
+  const payLabel = mode === "pro" ? "Pay & Get Full Report" : "Pay & Get Results";
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10">
@@ -60,14 +77,11 @@ export default function PreviewPage({
             {status === "ok" ? "Your result is ready" : "Scan failed"}
           </h1>
 
-          {/* URL/info */}
+          {/* Checked website (plain text, not a link) */}
           <div className="mb-6 text-center text-sm text-neutral-600">
             {url ? (
               <div className="truncate">
-                URL:{" "}
-                <a className="underline" href={url} target="_blank" rel="noreferrer">
-                  {url}
-                </a>
+                Checked website: <span className="font-medium">{url}</span>
               </div>
             ) : (
               <div>URL is missing</div>
@@ -76,24 +90,39 @@ export default function PreviewPage({
 
           {status === "ok" ? (
             <>
-              {/* List with colored dots (no values before payment) */}
+              {/* List with colored check circles (no values before payment) */}
               <ul className="mb-6 space-y-3">
                 {items.map((t, i) => (
                   <li key={i} className="flex items-center">
                     <span
-                      className={`mr-3 inline-block h-3 w-3 rounded-full ${dot}`}
+                      className={`mr-3 inline-flex h-5 w-5 items-center justify-center rounded-full ${colorDot}`}
                       aria-hidden="true"
-                    />
+                    >
+                      <svg
+                        viewBox="0 0 20 20"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M5 10.5l3 3 7-7"
+                          stroke="white"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
                     <span className="text-[15px]">{t}</span>
                   </li>
                 ))}
               </ul>
 
-              {/* Pro: email for PDF delivery */}
+              {/* Pro: email for report delivery */}
               {mode === "pro" && (
                 <div className="mb-4">
                   <label htmlFor="email" className="mb-1 block text-sm text-neutral-700">
-                    Your email to receive the PDF after payment
+                    Email to receive the report
                   </label>
                   <input
                     id="email"
@@ -103,31 +132,36 @@ export default function PreviewPage({
                     onChange={(e) => setEmail(e.target.value)}
                     className={[
                       "w-full rounded-md border px-3 py-2 text-sm outline-none",
-                      email || !emailValid
+                      email
                         ? emailValid
                           ? "border-neutral-300 focus:ring-2 focus:ring-green-500"
                           : "border-rose-400 focus:ring-2 focus:ring-rose-300"
                         : "border-neutral-300 focus:ring-2 focus:ring-green-500",
                     ].join(" ")}
+                    aria-invalid={mode === "pro" && !emailValid ? "true" : "false"}
+                    aria-describedby={mode === "pro" && !emailValid ? "email-err" : undefined}
                   />
-                  {!emailValid && (
-                    <p className="mt-1 text-xs text-rose-600">Please enter a valid email.</p>
+                  {mode === "pro" && !emailValid && (
+                    <p id="email-err" className="mt-1 text-xs text-rose-600">
+                      Please enter a valid email.
+                    </p>
                   )}
                 </div>
               )}
 
-              {/* Single Pay button */}
+              {/* Pay button (no price here) */}
               <button
                 onClick={pay}
                 disabled={!url || (mode === "pro" && !emailValid)}
                 className={[
                   "w-full rounded-md px-4 py-3 text-base font-medium transition-colors disabled:opacity-60",
-                  color,
+                  colorBtn,
                 ].join(" ")}
               >
-                Pay
+                {payLabel}
               </button>
 
+              {/* Disclaimer */}
               <p className="mt-6 text-center text-xs text-neutral-500">
                 <span className="opacity-60">
                   Visibility scores are estimated and based on publicly available data. Not legal advice.
@@ -137,7 +171,7 @@ export default function PreviewPage({
           ) : (
             // ERROR: no payment button
             <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              We couldn’t complete the scan for this URL. Please check the address and try again. Payment is disabled.
+              We couldn’t complete the scan for this URL. Please check the address and try again.
             </div>
           )}
 
