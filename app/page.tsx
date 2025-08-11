@@ -34,31 +34,37 @@ export default function Home() {
   const isValid = (u: string) =>
     /^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(u.trim());
 
-  const go = useCallback(async (mode: "quick" | "pro") => {
-    if (loading) return; // guard
-    const u = url.trim();
-    if (!isValid(u)) {
-      setError("Please enter a valid URL (including http/https).");
-      return;
-    }
-    setError(null);
-    setLoading(mode);
+  const go = useCallback(
+    async (mode: "quick" | "pro") => {
+      if (loading) return; // guard
+      const u = url.trim();
+      if (!isValid(u)) {
+        setError("Please enter a valid URL (including http/https).");
+        return;
+      }
+      setError(null);
+      setLoading(mode);
 
-    // keep the "Checking …" visible long enough for a professional feel
-    const minDuration = 1100; // ms
-    const started = Date.now();
+      // keep “Checking …” visible for a professional feel
+      const minDuration = 2200; // ms
+      const started = Date.now();
 
-    const q = new URLSearchParams({ url: u }).toString();
-    router.push(`/check/${mode}?${q}`);
+      const q = new URLSearchParams({ url: u }).toString();
+      router.push(`/check/${mode}?${q}`);
 
-    const left = Math.max(0, minDuration - (Date.now() - started));
-    await new Promise((r) => setTimeout(r, left));
-    // do not reset here (new page mounts). kept for safety:
-    setLoading(null);
-  }, [url, loading, router]);
+      const left = Math.max(0, minDuration - (Date.now() - started));
+      await new Promise((r) => setTimeout(r, left));
+      // New page usually mounts before this; kept for safety:
+      setLoading(null);
+    },
+    [url, loading, router]
+  );
+
+  const clear = () => setUrl("");
 
   return (
     <main className="mx-auto max-w-2xl px-6 pt-20 pb-16">
+      {/* Title */}
       <h1 className="text-center text-4xl font-semibold tracking-tight mb-4">
         AI Visibility Pro
       </h1>
@@ -67,8 +73,8 @@ export default function Home() {
         and Grok.
       </p>
 
-      {/* URL input */}
-      <div className="mb-2">
+      {/* URL input with clear icon */}
+      <div className="mb-2 relative">
         <input
           type="url"
           inputMode="url"
@@ -79,12 +85,22 @@ export default function Home() {
             if (e.key === "Enter") go("quick");
           }}
           className={[
-            "w-full rounded-md border px-4 py-3 text-base outline-none",
+            "w-full rounded-md border px-4 py-3 pr-12 text-base outline-none",
             error
               ? "border-rose-400 focus:ring-2 focus:ring-rose-300"
               : "border-neutral-300 focus:ring-2 focus:ring-blue-500",
           ].join(" ")}
         />
+        {url && (
+          <button
+            type="button"
+            aria-label="Clear"
+            onClick={clear}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full w-6 h-6 flex items-center justify-center text-neutral-500 hover:bg-neutral-100"
+          >
+            ×
+          </button>
+        )}
       </div>
       {error && <div className="mb-3 text-sm text-rose-600">{error}</div>}
 
@@ -124,6 +140,7 @@ export default function Home() {
         15-point audit, detailed PDF report, dev-ready checklist, results via email
       </p>
 
+      {/* Footer */}
       <footer className="mt-12 text-center text-xs text-neutral-500">
         © 2025 MYAIID. All rights reserved.
         <br />
