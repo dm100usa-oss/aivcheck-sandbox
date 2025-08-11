@@ -5,32 +5,31 @@ import { useRouter } from "next/navigation";
 
 type Mode = "quick" | "pro";
 
-// Agreed lists
-const ITEMS_QUICK = [
-  "AI Visibility Percentage",
+// User-facing labels (agreed). Top 5 go first for both modes.
+const ITEMS_TOP5 = [
+  "AI Visibility",
   "AI Readability of Text",
   "AI Access to Key Pages",
-  "AI Freshness",
-  "AI-Usable Structure of Information",
+  "Up-to-Date Information for AI",
+  "AI-Friendly Page Structure",
 ];
 
-const ITEMS_FULL = [
-  "AI Visibility Percentage",
-  "AI Readability of Text",
-  "AI Access to Key Pages",
-  "AI Freshness",
-  "AI-Usable Structure of Information",
-  "AI Can Find Your Website",
-  "All Important Pages Are Visible to AI",
-  "Key Facts Are Marked for AI",
-  "Page Titles Clearly Explain Content",
-  "No Confusing Duplicate Pages for AI",
-  "Pages Have Enough Useful Text for AI",
-  "Images Have Descriptions AI Can Read",
-  "Content Is Directly Accessible to AI",
-  "No Barriers Stopping AI From Reading",
-  "AI and Search Engines Can Reach Your Pages",
+const ITEMS_FULL_REST = [
+  "Search Discoverability for AI",
+  "Visibility of Key Sections for AI",
+  "Key Facts Marked for AI",
+  "Clear Titles and Descriptions for AI",
+  "Duplicate Pages (Impact on AI)",
+  "Enough Useful Text for AI",
+  "Image Descriptions for AI",
+  "Direct Content Access for AI",
+  "Barriers to AI Reading",
+  "Access to All Pages for AI and Search Engines",
 ];
+
+const ITEMS_QUICK = ITEMS_TOP5;
+
+const ITEMS_FULL = [...ITEMS_TOP5, ...ITEMS_FULL_REST];
 
 export default function PreviewPage({
   params,
