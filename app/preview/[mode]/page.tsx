@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 type Mode = "quick" | "pro";
 
-// User-facing labels (agreed). Top 5 go first for both modes.
+// Пользовательские лейблы (согласованные). В начале — 5 самых важных.
 const ITEMS_TOP5 = [
   "AI Visibility",
   "AI Readability of Text",
@@ -28,7 +28,6 @@ const ITEMS_FULL_REST = [
 ];
 
 const ITEMS_QUICK = ITEMS_TOP5;
-
 const ITEMS_FULL = [...ITEMS_TOP5, ...ITEMS_FULL_REST];
 
 export default function PreviewPage({
@@ -43,29 +42,29 @@ export default function PreviewPage({
   const status = (searchParams?.status || "ok").toLowerCase(); // "ok" | "error"
   const router = useRouter();
 
-  // Colors by mode
+  // Цвета по режиму
   const colorBtn =
     mode === "quick"
       ? "bg-blue-600 hover:bg-blue-700 text-white"
       : "bg-green-600 hover:bg-green-700 text-white";
   const colorDot = mode === "quick" ? "bg-blue-600" : "bg-green-600";
 
-  // Items by mode
+  // Пункты по режиму
   const items = useMemo(() => (mode === "pro" ? ITEMS_FULL : ITEMS_QUICK), [mode]);
 
-  // Email (only for pro)
+  // Email (только для pro)
   const [email, setEmail] = useState("");
   const emailValid =
     mode === "pro" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) : true;
 
-  // Payment (stub)
+  // Заглушка оплаты
   const pay = () => {
     alert("Payment flow opens here (Stripe/PayPal).");
   };
 
   const back = () => router.push("/");
 
-  // Button label
+  // Текст кнопки
   const payLabel = mode === "pro" ? "Pay & Get Full Report" : "Pay & Get Results";
 
   return (
@@ -76,20 +75,23 @@ export default function PreviewPage({
             {status === "ok" ? "Your result is ready" : "Scan failed"}
           </h1>
 
-          {/* Checked website (plain text, not a link) */}
-          <div className="mb-6 text-center text-sm text-neutral-600">
+          {/* Checked website (plain text, bigger URL) */}
+          <div className="mb-6 text-center">
             {url ? (
               <div className="truncate">
-                Checked website: <span className="font-medium">{url}</span>
+                <span className="text-[15px] text-neutral-600">Checked website: </span>
+                <span className="text-lg sm:text-xl font-medium text-neutral-900">
+                  {url}
+                </span>
               </div>
             ) : (
-              <div>URL is missing</div>
+              <div className="text-sm text-neutral-600">URL is missing</div>
             )}
           </div>
 
           {status === "ok" ? (
             <>
-              {/* List with colored check circles (no values before payment) */}
+              {/* Список с цветными кружками-галочками (значения скрыты до оплаты) */}
               <ul className="mb-6 space-y-3">
                 {items.map((t, i) => (
                   <li key={i} className="flex items-center">
@@ -117,7 +119,7 @@ export default function PreviewPage({
                 ))}
               </ul>
 
-              {/* Pro: email for report delivery */}
+              {/* Pro: email для отправки отчёта */}
               {mode === "pro" && (
                 <div className="mb-4">
                   <label htmlFor="email" className="mb-1 block text-sm text-neutral-700">
@@ -148,7 +150,7 @@ export default function PreviewPage({
                 </div>
               )}
 
-              {/* Pay button (no price here) */}
+              {/* Кнопка оплаты (без цены) */}
               <button
                 onClick={pay}
                 disabled={!url || (mode === "pro" && !emailValid)}
@@ -160,7 +162,7 @@ export default function PreviewPage({
                 {payLabel}
               </button>
 
-              {/* Disclaimer */}
+              {/* Дисклеймер */}
               <p className="mt-6 text-center text-xs text-neutral-500">
                 <span className="opacity-60">
                   Visibility scores are estimated and based on publicly available data. Not legal advice.
@@ -168,7 +170,7 @@ export default function PreviewPage({
               </p>
             </>
           ) : (
-            // ERROR: no payment button
+            // Ошибка: кнопки оплаты нет
             <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
               We couldn’t complete the scan for this URL. Please check the address and try again.
             </div>
