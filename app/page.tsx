@@ -25,6 +25,10 @@ function Dots() {
   );
 }
 
+// убираем "Checked website:" если пользователь вставил его из результатов
+const normalizeUrl = (v: string) =>
+  v.replace(/^\s*checked\s+website:\s*/i, "").trim();
+
 export default function Home() {
   const router = useRouter();
   const [url, setUrl] = useState("");
@@ -36,7 +40,7 @@ export default function Home() {
 
   const go = useCallback(async (mode: "quick" | "pro") => {
     if (loading) return;
-    const u = url.trim();
+    const u = normalizeUrl(url); // еще раз чистим на всякий случай
     if (!isValid(u)) {
       setError("Please enter a valid URL (including http/https).");
       return;
@@ -88,7 +92,15 @@ export default function Home() {
           inputMode="url"
           placeholder="https://example.com"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => setUrl(normalizeUrl(e.target.value))}
+          onPaste={(e) => {
+            const pasted = (e.clipboardData || (window as any).clipboardData).getData("text");
+            const cleaned = normalizeUrl(pasted);
+            if (cleaned !== pasted) {
+              e.preventDefault();
+              setUrl(cleaned);
+            }
+          }}
           onKeyDown={(e) => { if (e.key === "Enter") go("quick"); }}
           className={[
             "w-full rounded-md border px-4 py-3 pr-12 text-base outline-none",
