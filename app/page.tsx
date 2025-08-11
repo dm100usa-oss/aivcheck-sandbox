@@ -36,7 +36,7 @@ export default function Home() {
 
   const go = useCallback(
     async (mode: "quick" | "pro") => {
-      if (loading) return; // guard
+      if (loading) return; // prevent double click
       const u = url.trim();
       if (!isValid(u)) {
         setError("Please enter a valid URL (including http/https).");
@@ -45,17 +45,13 @@ export default function Home() {
       setError(null);
       setLoading(mode);
 
-      // keep “Checking …” visible for a professional feel
-      const minDuration = 2200; // ms
-      const started = Date.now();
+      // SHOW "Checking…" FIRST, THEN NAVIGATE (guaranteed min 2.2s)
+      const minDuration = 2200;
+      await new Promise((r) => setTimeout(r, minDuration));
 
       const q = new URLSearchParams({ url: u }).toString();
       router.push(`/check/${mode}?${q}`);
-
-      const left = Math.max(0, minDuration - (Date.now() - started));
-      await new Promise((r) => setTimeout(r, left));
-      // New page usually mounts before this; kept for safety:
-      setLoading(null);
+      // не сбрасываем loading: навигация унесёт нас на новую страницу
     },
     [url, loading, router]
   );
@@ -64,7 +60,6 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 pt-20 pb-16">
-      {/* Title */}
       <h1 className="text-center text-4xl font-semibold tracking-tight mb-4">
         AI Visibility Pro
       </h1>
@@ -81,9 +76,7 @@ export default function Home() {
           placeholder="https://example.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") go("quick");
-          }}
+          onKeyDown={(e) => { if (e.key === "Enter") go("quick"); }}
           className={[
             "w-full rounded-md border px-4 py-3 pr-12 text-base outline-none",
             error
@@ -140,7 +133,6 @@ export default function Home() {
         15-point audit, detailed PDF report, dev-ready checklist, results via email
       </p>
 
-      {/* Footer */}
       <footer className="mt-12 text-center text-xs text-neutral-500">
         © 2025 MYAIID. All rights reserved.
         <br />
