@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-/* only dots animate, text is stable */
+/** Only dots animate; text stays stable */
 function Dots() {
   return (
     <span className="inline-flex w-[1.7ch] justify-start tabular-nums align-middle">
@@ -15,7 +15,10 @@ function Dots() {
         .dot2 { animation-delay: 200ms; }
         .dot3 { animation-delay: 400ms; }
         @keyframes aiv-dots {
-          0% { opacity: .2; } 30% { opacity: 1; } 60% { opacity: .2; } 100% { opacity: .2; }
+          0% { opacity: .2; }
+          30% { opacity: 1; }
+          60% { opacity: .2; }
+          100% { opacity: .2; }
         }
       `}</style>
     </span>
@@ -23,35 +26,36 @@ function Dots() {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loadingQuick, setLoadingQuick] = useState(false);
-  const [loadingPro, setLoadingPro] = useState(false);
-  const router = useRouter();
+  const [loading, setLoading] = useState<"quick" | "pro" | null>(null);
 
-  function isValid(u: string) {
-    return /^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(u.trim());
-  }
+  const isValid = (u: string) =>
+    /^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(u.trim());
 
-  const go = async (mode: "quick" | "pro") => {
+  const go = useCallback(async (mode: "quick" | "pro") => {
+    if (loading) return; // guard
     const u = url.trim();
     if (!isValid(u)) {
       setError("Please enter a valid URL (including http/https).");
       return;
     }
     setError(null);
+    setLoading(mode);
 
-    if (mode === "quick") setLoadingQuick(true);
-    else setLoadingPro(true);
-
+    // keep the "Checking …" visible long enough for a professional feel
+    const minDuration = 1100; // ms
     const started = Date.now();
+
     const q = new URLSearchParams({ url: u }).toString();
     router.push(`/check/${mode}?${q}`);
-    const left = Math.max(0, 800 - (Date.now() - started));
+
+    const left = Math.max(0, minDuration - (Date.now() - started));
     await new Promise((r) => setTimeout(r, left));
-    if (mode === "quick") setLoadingQuick(false);
-    else setLoadingPro(false);
-  };
+    // do not reset here (new page mounts). kept for safety:
+    setLoading(null);
+  }, [url, loading, router]);
 
   return (
     <main className="mx-auto max-w-2xl px-6 pt-20 pb-16">
@@ -63,6 +67,7 @@ export default function Home() {
         and Grok.
       </p>
 
+      {/* URL input */}
       <div className="mb-2">
         <input
           type="url"
@@ -70,6 +75,9 @@ export default function Home() {
           placeholder="https://example.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") go("quick");
+          }}
           className={[
             "w-full rounded-md border px-4 py-3 text-base outline-none",
             error
@@ -80,12 +88,13 @@ export default function Home() {
       </div>
       {error && <div className="mb-3 text-sm text-rose-600">{error}</div>}
 
+      {/* Quick button */}
       <button
         onClick={() => go("quick")}
-        disabled={loadingQuick || loadingPro}
+        disabled={!!loading}
         className="w-full rounded-md bg-blue-600 px-4 py-3 text-white text-base font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors"
       >
-        {loadingQuick ? (
+        {loading === "quick" ? (
           <span className="inline-flex items-center">
             Checking<Dots />
           </span>
@@ -97,12 +106,13 @@ export default function Home() {
         Instant results, 5-point basic check, simple recommendations
       </p>
 
+      {/* Pro button */}
       <button
         onClick={() => go("pro")}
-        disabled={loadingQuick || loadingPro}
+        disabled={!!loading}
         className="w-full rounded-md bg-green-600 px-4 py-3 text-white text-base font-medium hover:bg-green-700 disabled:opacity-60 transition-colors"
       >
-        {loadingPro ? (
+        {loading === "pro" ? (
           <span className="inline-flex items-center">
             Checking<Dots />
           </span>
