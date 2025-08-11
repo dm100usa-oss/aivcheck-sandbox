@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 type Mode = "quick" | "pro";
 
-// Пользовательские лейблы (согласованные). В начале — 5 самых важных.
+// User-facing labels (agreed). Top 5 first.
 const ITEMS_TOP5 = [
   "AI Visibility",
   "AI Readability of Text",
@@ -42,29 +42,29 @@ export default function PreviewPage({
   const status = (searchParams?.status || "ok").toLowerCase(); // "ok" | "error"
   const router = useRouter();
 
-  // Цвета по режиму
+  // Colors by mode
   const colorBtn =
     mode === "quick"
       ? "bg-blue-600 hover:bg-blue-700 text-white"
       : "bg-green-600 hover:bg-green-700 text-white";
   const colorDot = mode === "quick" ? "bg-blue-600" : "bg-green-600";
 
-  // Пункты по режиму
+  // Items by mode
   const items = useMemo(() => (mode === "pro" ? ITEMS_FULL : ITEMS_QUICK), [mode]);
 
-  // Email (только для pro)
+  // Email (only for pro)
   const [email, setEmail] = useState("");
   const emailValid =
     mode === "pro" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) : true;
 
-  // Заглушка оплаты
+  // Payment stub
   const pay = () => {
     alert("Payment flow opens here (Stripe/PayPal).");
   };
 
   const back = () => router.push("/");
 
-  // Текст кнопки
+  // Button label
   const payLabel = mode === "pro" ? "Pay & Get Full Report" : "Pay & Get Results";
 
   return (
@@ -75,23 +75,20 @@ export default function PreviewPage({
             {status === "ok" ? "Your result is ready" : "Scan failed"}
           </h1>
 
-          {/* Checked website (plain text, bigger URL) */}
-          <div className="mb-6 text-center">
+          {/* Checked website (plain text, compact) */}
+          <div className="mb-6 text-center text-sm text-neutral-600">
             {url ? (
               <div className="truncate">
-                <span className="text-[15px] text-neutral-600">Checked website: </span>
-                <span className="text-lg sm:text-xl font-medium text-neutral-900">
-                  {url}
-                </span>
+                Checked website: <span className="font-medium">{url}</span>
               </div>
             ) : (
-              <div className="text-sm text-neutral-600">URL is missing</div>
+              <div>URL is missing</div>
             )}
           </div>
 
           {status === "ok" ? (
             <>
-              {/* Список с цветными кружками-галочками (значения скрыты до оплаты) */}
+              {/* List with colored check circles (no values before payment) */}
               <ul className="mb-6 space-y-3">
                 {items.map((t, i) => (
                   <li key={i} className="flex items-center">
@@ -119,7 +116,7 @@ export default function PreviewPage({
                 ))}
               </ul>
 
-              {/* Pro: email для отправки отчёта */}
+              {/* Pro: email for report delivery */}
               {mode === "pro" && (
                 <div className="mb-4">
                   <label htmlFor="email" className="mb-1 block text-sm text-neutral-700">
@@ -150,7 +147,7 @@ export default function PreviewPage({
                 </div>
               )}
 
-              {/* Кнопка оплаты (без цены) */}
+              {/* Pay button (no price here) */}
               <button
                 onClick={pay}
                 disabled={!url || (mode === "pro" && !emailValid)}
@@ -162,7 +159,7 @@ export default function PreviewPage({
                 {payLabel}
               </button>
 
-              {/* Дисклеймер */}
+              {/* Disclaimer */}
               <p className="mt-6 text-center text-xs text-neutral-500">
                 <span className="opacity-60">
                   Visibility scores are estimated and based on publicly available data. Not legal advice.
@@ -170,7 +167,7 @@ export default function PreviewPage({
               </p>
             </>
           ) : (
-            // Ошибка: кнопки оплаты нет
+            // Error: no payment button
             <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
               We couldn’t complete the scan for this URL. Please check the address and try again.
             </div>
