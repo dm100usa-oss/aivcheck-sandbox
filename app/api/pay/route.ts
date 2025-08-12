@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2024-06-20",
-});
+export const runtime = "nodejs";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 function getBaseUrl() {
   const url =
@@ -31,12 +31,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
     if (mode !== "quick" && mode !== "pro") {
       return NextResponse.json({ error: "Invalid mode." }, { status: 400 });
     }
-
-    // For full audit we expect email (for report delivery)
     if (mode === "pro" && !isValidEmail(email)) {
       return NextResponse.json({ error: "Invalid email." }, { status: 400 });
     }
@@ -61,7 +58,7 @@ export async function POST(req: NextRequest) {
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/cancel`,
-        customer_email: mode === "pro" ? email : undefined, // Stripe will send receipt to this email
+        customer_email: mode === "pro" ? email : undefined,
         metadata: {
           url,
           mode,
@@ -74,7 +71,6 @@ export async function POST(req: NextRequest) {
             reportEmail: mode === "pro" ? email : "",
           },
         },
-        // Keep MVP simple; taxes/invoicing can be added later
         automatic_tax: { enabled: false },
       },
       {
