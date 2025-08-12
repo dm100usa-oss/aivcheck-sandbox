@@ -1,45 +1,47 @@
 import Stripe from "stripe";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
-const stripeSecret = process.env.STRIPE_SECRET_KEY!;
-const priceQuick = process.env.STRIPE_PRICE_QUICK!; // 9.99
-const priceFull = process.env.STRIPE_PRICE_FULL!;   // 19.99
-
-const stripe = new Stripe(stripeSecret);
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { mode, url, email } = (await req.json()) as {
-      mode: "quick" | "pro";
-      url: string;
-      email?: string;
-    };
+    const { mode, url } = await req.json();
+    const kind = mode === "pro" ? "pro" : "quick";
 
-    if (!url || !/^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(url)) {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-    }
-    if (mode === "pro" && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
-      return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+    const price =
+      kind === "pro"
+        ? process.env.STRIPE_PRICE_FULL
+        : process.env.STRIPE_PRICE_QUICK;
+
+    if (!price) {
+      return NextResponse.json(
+        { error: "Price not configured" },
+        { status: 500 }
+      );
     }
 
-    const origin = req.headers.get("origin") || "https://aivcheck-sandbox.vercel.app";
-    const successUrl = `${origin}/?paid=1`;
-    const cancelUrl = `${origin}/?canceled=1`;
+    const base =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [{ price: mode === "quick" ? priceQuick : priceFull, quantity: 1 }],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: { mode, url, email: email || "" },
-      customer_email: mode === "pro" ? email : undefined
+      line_items: [{ price, quantity: 1 }],
+      success_url: `${base}/success?mode=${kind}`,
+      cancel_url: `${base}/`,
+      locale: "en", // force English UI
+      billing_address_collection: "auto",
+      metadata: { url, mode: kind },
+      allow_promotion_codes: false,
     });
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe error:", err?.message || err);
-    return NextResponse.json({ error: "Payment init failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: err?.message ?? "Create session failed" },
+      { status: 500 }
+    );
   }
 }
