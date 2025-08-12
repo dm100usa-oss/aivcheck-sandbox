@@ -5,31 +5,6 @@ import { useRouter } from "next/navigation";
 
 type Mode = "quick" | "pro";
 
-// User-facing labels. Top 5 first for both modes.
-const ITEMS_TOP5 = [
-  "AI Visibility",
-  "AI Readability of Text",
-  "AI Access to Key Pages",
-  "Up-to-Date Information for AI",
-  "AI-Friendly Page Structure",
-];
-
-const ITEMS_FULL_REST = [
-  "Search Discoverability for AI",
-  "Visibility of Key Sections for AI",
-  "Key Facts Marked for AI",
-  "Clear Titles and Descriptions for AI",
-  "Duplicate Pages (Impact on AI)",
-  "Enough Useful Text for AI",
-  "Image Descriptions for AI",
-  "Direct Content Access for AI",
-  "Barriers to AI Reading",
-  "Access to All Pages for AI and Search Engines",
-];
-
-const ITEMS_QUICK = ITEMS_TOP5;
-const ITEMS_FULL = [...ITEMS_TOP5, ...ITEMS_FULL_REST];
-
 export default function PreviewPage({
   params,
   searchParams,
@@ -39,98 +14,100 @@ export default function PreviewPage({
 }) {
   const mode = (params.mode as Mode) || "quick";
   const url = (searchParams?.url || "").trim();
-  const status = (searchParams?.status || "ok").toLowerCase(); // "ok" | "error"
+  const status = (searchParams?.status || "ok").toLowerCase();
   const router = useRouter();
 
-  const colorBtn =
-    mode === "quick"
-      ? "bg-blue-600 hover:bg-blue-700 text-white"
-      : "bg-green-600 hover:bg-green-700 text-white";
-  const colorDot = mode === "quick" ? "bg-blue-600" : "bg-green-600";
+  const isQuick = mode === "quick";
+  const btnColor = isQuick
+    ? "bg-blue-600 hover:bg-blue-700 text-white"
+    : "bg-green-600 hover:bg-green-700 text-white";
+  const dotColor = isQuick ? "bg-blue-600" : "bg-green-600";
 
-  const items = useMemo(() => (mode === "pro" ? ITEMS_FULL : ITEMS_QUICK), [mode]);
+  const quickItems = useMemo(
+    () => [
+      "AI Visibility",
+      "AI Readability of Text",
+      "AI Access to Key Pages",
+      "Up-to-Date Information for AI",
+      "AI-Friendly Page Structure",
+    ],
+    []
+  );
+
+  const proItems = useMemo(
+    () => [
+      "AI Visibility",
+      "AI Readability of Text",
+      "AI Access to Key Pages",
+      "Up-to-Date Information for AI",
+      "AI-Friendly Page Structure",
+      "AI Can Find Your Website",
+      "All Important Pages Are Visible to AI",
+      "Key Facts Are Marked for AI",
+      "Page Titles Clearly Explain Content",
+      "No Confusing Duplicate Pages for AI",
+      "Pages Have Enough Useful Text for AI",
+      "Images Have Descriptions AI Can Read",
+      "Content Is Directly Accessible to AI",
+      "No Barriers Stopping AI From Reading",
+      "AI and Search Engines Can Reach Your Pages",
+    ],
+    []
+  );
+
+  const items = mode === "quick" ? quickItems : proItems;
 
   const [email, setEmail] = useState("");
-  const emailValid =
-    mode === "pro" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) : true;
+  const emailValid = mode === "pro" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) : true;
 
-  // Create checkout session and redirect
   const pay = async () => {
     try {
-      const res = await fetch("/api/pay", {
+      const body: any = { mode, url };
+      if (mode === "pro") body.email = email;
+
+      const resp = await fetch("/api/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url,
-          mode,
-          email: mode === "pro" ? email.trim() : undefined,
-        }),
+        body: JSON.stringify(body),
       });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.sessionUrl) {
-        alert(data?.error || "Payment initialization failed.");
+
+      const json = await resp.json();
+      if (!resp.ok || !json?.url) {
+        alert(json?.error || "Payment error. Try again.");
         return;
       }
-      window.location.href = data.sessionUrl as string;
+      window.location.href = json.url;
     } catch {
-      alert("Payment initialization failed.");
+      alert("Network error. Try again.");
     }
   };
 
   const back = () => router.push("/");
 
-  const payLabel = mode === "pro" ? "Pay & Get Full Report" : "Pay & Get Results";
-
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="mx-auto w-full max-w-xl">
         <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <h1 className="mb-6 text-center text-2xl font-semibold">
+          <h1 className="mb-4 text-center text-2xl font-semibold">
             {status === "ok" ? "Your result is ready" : "Scan failed"}
           </h1>
 
-          {/* Checked website (plain text, compact) */}
-          <div className="mb-6 text-center text-sm text-neutral-600">
-            {url ? (
-              <div className="truncate">
-                Checked website: <span className="font-medium">{url}</span>
-              </div>
-            ) : (
-              <div>URL is missing</div>
-            )}
+          {/* plain text (not a link) */}
+          <div className="mb-6 text-center text-[15px] text-neutral-600">
+            {url ? <div className="truncate">Checked website: {url}</div> : <div>URL is missing</div>}
           </div>
 
           {status === "ok" ? (
             <>
-              {/* Checklist (no numeric values before payment) */}
               <ul className="mb-6 space-y-3">
                 {items.map((t, i) => (
                   <li key={i} className="flex items-center">
-                    <span
-                      className={`mr-3 inline-flex h-5 w-5 items-center justify-center rounded-full ${colorDot}`}
-                      aria-hidden="true"
-                    >
-                      <svg
-                        viewBox="0 0 20 20"
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M5 10.5l3 3 7-7"
-                          stroke="white"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
+                    <span className={`mr-3 inline-block h-3 w-3 rounded-full ${dotColor}`} />
                     <span className="text-[15px]">{t}</span>
                   </li>
                 ))}
               </ul>
 
-              {/* Pro: email for report delivery */}
               {mode === "pro" && (
                 <div className="mb-4">
                   <label htmlFor="email" className="mb-1 block text-sm text-neutral-700">
@@ -144,33 +121,25 @@ export default function PreviewPage({
                     onChange={(e) => setEmail(e.target.value)}
                     className={[
                       "w-full rounded-md border px-3 py-2 text-sm outline-none",
-                      email
+                      email || !emailValid
                         ? emailValid
                           ? "border-neutral-300 focus:ring-2 focus:ring-green-500"
                           : "border-rose-400 focus:ring-2 focus:ring-rose-300"
                         : "border-neutral-300 focus:ring-2 focus:ring-green-500",
                     ].join(" ")}
-                    aria-invalid={mode === "pro" && !emailValid ? "true" : "false"}
-                    aria-describedby={mode === "pro" && !emailValid ? "email-err" : undefined}
                   />
-                  {mode === "pro" && !emailValid && (
-                    <p id="email-err" className="mt-1 text-xs text-rose-600">
-                      Please enter a valid email.
-                    </p>
+                  {!emailValid && (
+                    <p className="mt-1 text-xs text-rose-600">Please enter a valid email.</p>
                   )}
                 </div>
               )}
 
-              {/* Pay */}
               <button
                 onClick={pay}
                 disabled={!url || (mode === "pro" && !emailValid)}
-                className={[
-                  "w-full rounded-md px-4 py-3 text-base font-medium transition-colors disabled:opacity-60",
-                  colorBtn,
-                ].join(" ")}
+                className={["w-full rounded-md px-4 py-3 text-base font-medium transition-colors disabled:opacity-60", btnColor].join(" ")}
               >
-                {payLabel}
+                {mode === "quick" ? "Pay & Get Results" : "Pay & Get Full Report"}
               </button>
 
               <p className="mt-6 text-center text-xs text-neutral-500">
@@ -181,7 +150,7 @@ export default function PreviewPage({
             </>
           ) : (
             <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              We couldn’t complete the scan for this URL. Please check the address and try again.
+              We couldn’t complete the scan for this URL. Please check the address and try again. Payment is disabled.
             </div>
           )}
 
