@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 type Mode = "quick" | "pro";
 
-// User-facing labels (agreed). Top 5 first.
+// User-facing labels. Top 5 first for both modes.
 const ITEMS_TOP5 = [
   "AI Visibility",
   "AI Readability of Text",
@@ -42,29 +42,43 @@ export default function PreviewPage({
   const status = (searchParams?.status || "ok").toLowerCase(); // "ok" | "error"
   const router = useRouter();
 
-  // Colors by mode
   const colorBtn =
     mode === "quick"
       ? "bg-blue-600 hover:bg-blue-700 text-white"
       : "bg-green-600 hover:bg-green-700 text-white";
   const colorDot = mode === "quick" ? "bg-blue-600" : "bg-green-600";
 
-  // Items by mode
   const items = useMemo(() => (mode === "pro" ? ITEMS_FULL : ITEMS_QUICK), [mode]);
 
-  // Email (only for pro)
   const [email, setEmail] = useState("");
   const emailValid =
     mode === "pro" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) : true;
 
-  // Payment stub
-  const pay = () => {
-    alert("Payment flow opens here (Stripe/PayPal).");
+  // Create checkout session and redirect
+  const pay = async () => {
+    try {
+      const res = await fetch("/api/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url,
+          mode,
+          email: mode === "pro" ? email.trim() : undefined,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.sessionUrl) {
+        alert(data?.error || "Payment initialization failed.");
+        return;
+      }
+      window.location.href = data.sessionUrl as string;
+    } catch {
+      alert("Payment initialization failed.");
+    }
   };
 
   const back = () => router.push("/");
 
-  // Button label
   const payLabel = mode === "pro" ? "Pay & Get Full Report" : "Pay & Get Results";
 
   return (
@@ -88,7 +102,7 @@ export default function PreviewPage({
 
           {status === "ok" ? (
             <>
-              {/* List with colored check circles (no values before payment) */}
+              {/* Checklist (no numeric values before payment) */}
               <ul className="mb-6 space-y-3">
                 {items.map((t, i) => (
                   <li key={i} className="flex items-center">
@@ -147,7 +161,7 @@ export default function PreviewPage({
                 </div>
               )}
 
-              {/* Pay button (no price here) */}
+              {/* Pay */}
               <button
                 onClick={pay}
                 disabled={!url || (mode === "pro" && !emailValid)}
@@ -159,7 +173,6 @@ export default function PreviewPage({
                 {payLabel}
               </button>
 
-              {/* Disclaimer */}
               <p className="mt-6 text-center text-xs text-neutral-500">
                 <span className="opacity-60">
                   Visibility scores are estimated and based on publicly available data. Not legal advice.
@@ -167,7 +180,6 @@ export default function PreviewPage({
               </p>
             </>
           ) : (
-            // Error: no payment button
             <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
               We couldn’t complete the scan for this URL. Please check the address and try again.
             </div>
