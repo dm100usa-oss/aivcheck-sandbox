@@ -1,89 +1,45 @@
-import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+const stripeSecret = process.env.STRIPE_SECRET_KEY!;
+const priceQuick = process.env.STRIPE_PRICE_QUICK!; // 9.99
+const priceFull = process.env.STRIPE_PRICE_FULL!;   // 19.99
 
-function getBaseUrl() {
-  const url =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
-  return url || "http://localhost:3000";
-}
-
-function isValidUrl(u: string) {
-  return /^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(u.trim());
-}
-
-function isValidEmail(e?: string) {
-  if (!e) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
-}
+const stripe = new Stripe(stripeSecret);
 
 export async function POST(req: NextRequest) {
   try {
-    const { url, mode, email } = await req.json();
+    const { mode, url, email } = (await req.json()) as {
+      mode: "quick" | "pro";
+      url: string;
+      email?: string;
+    };
 
-    if (!isValidUrl(url)) {
-      return NextResponse.json(
-        { error: "Please enter a valid URL (including http/https)." },
-        { status: 400 }
-      );
+    if (!url || !/^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(url)) {
+      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     }
-    if (mode !== "quick" && mode !== "pro") {
-      return NextResponse.json({ error: "Invalid mode." }, { status: 400 });
-    }
-    if (mode === "pro" && !isValidEmail(email)) {
-      return NextResponse.json({ error: "Invalid email." }, { status: 400 });
+    if (mode === "pro" && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
-    const priceId =
-      mode === "pro"
-        ? process.env.STRIPE_PRICE_FULL
-        : process.env.STRIPE_PRICE_QUICK;
+    const origin = req.headers.get("origin") || "https://aivcheck-sandbox.vercel.app";
+    const successUrl = `${origin}/?paid=1`;
+    const cancelUrl = `${origin}/?canceled=1`;
 
-    if (!priceId) {
-      return NextResponse.json(
-        { error: "Stripe price ID is not configured." },
-        { status: 500 }
-      );
-    }
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [{ price: mode === "quick" ? priceQuick : priceFull, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: { mode, url, email: email || "" },
+      customer_email: mode === "pro" ? email : undefined
+    });
 
-    const baseUrl = getBaseUrl();
-
-    const session = await stripe.checkout.sessions.create(
-      {
-        mode: "payment",
-        line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/cancel`,
-        customer_email: mode === "pro" ? email : undefined,
-        metadata: {
-          url,
-          mode,
-          reportEmail: mode === "pro" ? email : "",
-        },
-        payment_intent_data: {
-          metadata: {
-            url,
-            mode,
-            reportEmail: mode === "pro" ? email : "",
-          },
-        },
-        automatic_tax: { enabled: false },
-      },
-      {
-        idempotencyKey: `pay_${mode}_${url}_${email || ""}`,
-      }
-    );
-
-    return NextResponse.json({ sessionUrl: session.url }, { status: 200 });
+    return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe session error:", err);
-    return NextResponse.json(
-      { error: "Failed to create checkout session." },
-      { status: 500 }
-    );
+    console.error("Stripe error:", err?.message || err);
+    return NextResponse.json({ error: "Payment init failed" }, { status: 500 });
   }
 }
