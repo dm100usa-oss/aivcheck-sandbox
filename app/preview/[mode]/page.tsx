@@ -1,4 +1,6 @@
 // app/preview/[mode]/page.tsx
+"use client";
+
 import React from "react";
 import { loadStripe } from "@stripe/stripe-js";
 
@@ -36,25 +38,33 @@ export default function PreviewPage({ params }: Props) {
   const isPro = params.mode === "pro";
   const items = isPro ? proItems : quickItems;
 
+  // Цвет кнопки в зависимости от тарифа
   const buttonColor = isPro
     ? "bg-green-600 hover:bg-green-700"
     : "bg-blue-600 hover:bg-blue-700";
 
+  // Цена в Stripe
   const priceId = isPro
     ? process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID
     : process.env.NEXT_PUBLIC_STRIPE_QUICK_PRICE_ID;
 
+  // Функция запуска Stripe Checkout
   const handleCheckout = async () => {
     const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
 
-    const response = await fetch("/api/checkout", {
+    const response = await fetch("/api/pay", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ priceId }),
     });
 
     const session = await response.json();
-    await stripe?.redirectToCheckout({ sessionId: session.id });
+
+    if (session.id) {
+      await stripe?.redirectToCheckout({ sessionId: session.id });
+    } else {
+      alert("Something went wrong. Please try again.");
+    }
   };
 
   return (
