@@ -1,8 +1,15 @@
 import ReportLayout from "@/components/ReportLayout";
 
+// Определяем тип для элемента проверки
+type CheckItem = {
+  name: string;
+  status?: "Passed" | "Failed";
+  explanation: string;
+};
+
 export default function SuccessPage() {
-  // тестовые данные (пока без Stripe)
-  const testItems = [
+  // Тестовые данные (типизированы правильно)
+  const testItems: CheckItem[] = [
     { name: "Robots.txt", status: "Failed", explanation: "File missing or blocks AI" },
     { name: "Sitemap.xml", status: "Passed", explanation: "Sitemap found and valid" },
     { name: "Title tag", status: "Passed", explanation: "Title is clear and unique" },
