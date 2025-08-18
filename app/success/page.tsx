@@ -1,3 +1,4 @@
+// app/success/page.tsx
 import React from "react";
 import ReportLayout from "../../components/ReportLayout";
 import { CheckItem } from "../../types";
