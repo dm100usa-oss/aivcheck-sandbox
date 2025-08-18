@@ -1,7 +1,7 @@
-// app/success/page.tsx
+// /app/success/page.tsx
 import React from "react";
 import ReportLayout from "../../components/ReportLayout";
-import { CheckItem } from "../../types";
+import { CheckItem } from "../../types";  // ✅ правильный путь
 
 const testItems: CheckItem[] = [
   { name: "Robots.txt", status: "Failed", explanation: "File missing or blocks AI" },
