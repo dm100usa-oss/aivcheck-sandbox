@@ -1,7 +1,7 @@
-// /app/success/page.tsx
+// app/success/page.tsx
 import React from "react";
 import ReportLayout from "../../components/ReportLayout";
-import { CheckItem } from "../../types";  // ✅ правильный путь
+import { CheckItem } from "../../types";
 
 const testItems: CheckItem[] = [
   { name: "Robots.txt", status: "Failed", explanation: "File missing or blocks AI" },
@@ -13,10 +13,10 @@ const testItems: CheckItem[] = [
 
 export default function SuccessPage() {
   return (
-    <ReportLayout
-      score={56}
-      interpretation="Moderate"
-      items={testItems}
-    />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-3xl w-full">
+        <ReportLayout score={56} interpretation="Moderate" items={testItems} />
+      </div>
+    </div>
   );
 }
