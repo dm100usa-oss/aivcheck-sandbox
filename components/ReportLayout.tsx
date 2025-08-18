@@ -1,102 +1,69 @@
 "use client";
 
+import React from "react";
 import Donut from "./Donut";
-import Link from "next/link";
 
 type CheckItem = {
   name: string;
-  status?: "Passed" | "Failed"; // в Preview может не быть
-  explanation?: string;         // в Pro есть
+  status: "Passed" | "Failed";
+  explanation: string;
 };
 
 type ReportLayoutProps = {
-  mode: "quick" | "pro";
-  url: string;
-  score: number; // процент видимости
+  score: number;
   interpretation: "Low" | "Moderate" | "High";
   items: CheckItem[];
 };
 
-export default function ReportLayout({
-  mode,
-  url,
-  score,
-  interpretation,
-  items,
-}: ReportLayoutProps) {
+const ReportLayout: React.FC<ReportLayoutProps> = ({ score, interpretation, items }) => {
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      {/* Заголовок */}
-      <h1 className="text-2xl font-semibold mb-2">AI Visibility Result</h1>
-      <p className="text-gray-500 mb-6">
-        Mode: <span className="font-medium">{mode}</span> · URL:{" "}
-        <a href={url} className="text-blue-600 underline" target="_blank">
-          {url}
-        </a>
-      </p>
-
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-lg">
       {/* Donut + Interpretation */}
       <div className="flex items-center gap-6 mb-6">
-        <Donut value={score} />
+        <Donut score={score} />
         <div>
           <p className="text-lg font-medium">{score}% visibility</p>
-          <p
-            className={`mt-1 inline-block px-3 py-1 rounded text-sm ${
-              interpretation === "Low"
-                ? "bg-red-100 text-red-600"
-                : interpretation === "Moderate"
-                ? "bg-yellow-100 text-yellow-600"
-                : "bg-green-100 text-green-600"
-            }`}
-          >
+          <span className="px-3 py-1 text-sm rounded-full bg-yellow-100 text-yellow-700">
             {interpretation}
-          </p>
+          </span>
         </div>
       </div>
 
       {/* Список пунктов */}
-      <div className="space-y-4 mb-6">
-        {items.map((item, i) => (
+      <div className="space-y-4">
+        {items.map((item, index) => (
           <div
-            key={i}
-            className="border rounded p-3 flex flex-col sm:flex-row sm:items-center justify-between"
+            key={index}
+            className={`p-4 rounded-lg border ${
+              item.status === "Passed" ? "border-green-300 bg-green-50" : "border-red-300 bg-red-50"
+            }`}
           >
-            <div>
-              <p className="font-medium">{item.name}</p>
-              {item.explanation && (
-                <p className="text-sm text-gray-500 mt-1">{item.explanation}</p>
-              )}
-            </div>
-            {item.status && (
+            <p className="font-semibold">
+              {item.name} –{" "}
               <span
-                className={`mt-2 sm:mt-0 px-2 py-1 text-sm font-medium rounded ${
-                  item.status === "Passed"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
+                className={
+                  item.status === "Passed" ? "text-green-600" : "text-red-600"
+                }
               >
                 {item.status}
               </span>
-            )}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">{item.explanation}</p>
           </div>
         ))}
       </div>
 
       {/* Кнопка */}
-      <div className="flex justify-center">
-        <Link
+      <div className="mt-6 text-center">
+        <a
           href="/"
-          className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+          className="px-6 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
         >
           Back to Home
-        </Link>
+        </a>
       </div>
-
-      {/* Дисклеймер */}
-      <p className="text-xs text-gray-400 text-center mt-6">
-        Visibility scores are estimated and based on publicly available data.
-        Not legal advice.
-      </p>
     </div>
   );
-}
+};
+
+export default ReportLayout;
