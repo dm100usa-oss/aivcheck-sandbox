@@ -1,45 +1,50 @@
-"use client";
-
 import React from "react";
 
-type DonutProps = {
-  value: number; // 0..100
-  size?: number; // px
-  strokeWidth?: number; // px
-};
+interface DonutProps {
+  score: number;
+}
 
-export default function Donut({ value, size = 200, strokeWidth = 18 }: DonutProps) {
-  const clamped = Math.max(0, Math.min(100, Math.round(value)));
-  const r = (size - strokeWidth) / 2;
-  const c = 2 * Math.PI * r;
-  const dash = (clamped / 100) * c;
+function getColor(score: number) {
+  if (score < 31) return "text-red-500";
+  if (score < 61) return "text-yellow-500";
+  return "text-green-500";
+}
+
+const Donut: React.FC<DonutProps> = ({ score }) => {
+  const radius = 50;
+  const stroke = 10;
+  const normalizedRadius = radius - stroke * 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDashoffset =
+    circumference - (score / 100) * circumference;
 
   return (
-    <div style={{ width: size, height: size }} className="relative">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <div className="flex flex-col items-center">
+      <svg height={radius * 2} width={radius * 2}>
         <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="#e5e7eb"
-          strokeWidth={strokeWidth}
-          fill="none"
+          stroke="#e5e7eb" // серый фон (Tailwind gray-200)
+          fill="transparent"
+          strokeWidth={stroke}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
         />
         <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="#16a34a"
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={`${dash} ${c - dash}`}
+          stroke="currentColor"
+          className={getColor(score)}
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeDasharray={circumference + " " + circumference}
+          strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-4xl font-extrabold text-gray-900">{clamped}%</span>
-      </div>
+      <div className="mt-2 text-xl font-semibold">{score}%</div>
     </div>
   );
-}
+};
+
+export default Donut;
