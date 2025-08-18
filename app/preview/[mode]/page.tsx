@@ -1,92 +1,79 @@
 // app/preview/[mode]/page.tsx
-"use client";
-
 import React from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import Link from "next/link";
 
-type Props = {
-  params: { mode: "quick" | "pro" };
+type Mode = "quick" | "pro";
+
+const POINTS: Record<Mode, string[]> = {
+  quick: [
+    "AI Visibility",
+    "AI Readability of Text",
+    "AI Access to Key Pages",
+    "Up-to-Date Information for AI",
+    "AI-Friendly Page Structure",
+  ],
+  pro: [
+    "Robots.txt",
+    "Sitemap.xml",
+    "Title tag",
+    "Meta description",
+    "Open Graph",
+    "H1",
+    "Structured Data (JSON-LD)",
+    "Mobile friendly (viewport)",
+    "HTTPS / SSL",
+    "Alt attributes",
+    "Canonical",
+    "X-Robots-Tag (headers)",
+    "Meta robots",
+    "Favicon",
+    "404 page",
+  ],
 };
 
-const quickItems = [
-  "Robots.txt",
-  "Sitemap.xml",
-  "AI Readability",
-  "Structured Data",
-  "AI-Friendly Page Structure",
-];
-
-const proItems = [
-  "Robots.txt",
-  "Sitemap.xml",
-  "X-Robots-Tag",
-  "Meta robots",
-  "Canonical",
-  "Title tag",
-  "Meta description",
-  "Open Graph",
-  "H1",
-  "Structured Data",
-  "Mobile-friendly (viewport)",
-  "HTTPS/SSL",
-  "Alt attributes",
-  "Favicon",
-  "Page size",
-];
-
-export default function PreviewPage({ params }: Props) {
-  const isPro = params.mode === "pro";
-  const items = isPro ? proItems : quickItems;
-
-  // Цвет кнопки в зависимости от тарифа
-  const buttonColor = isPro
-    ? "bg-green-600 hover:bg-green-700"
-    : "bg-blue-600 hover:bg-blue-700";
-
-  // Цена в Stripe
-  const priceId = isPro
-    ? process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID
-    : process.env.NEXT_PUBLIC_STRIPE_QUICK_PRICE_ID;
-
-  // Функция запуска Stripe Checkout
-  const handleCheckout = async () => {
-    const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
-
-    const response = await fetch("/api/pay", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId }),
-    });
-
-    const session = await response.json();
-
-    if (session.id) {
-      await stripe?.redirectToCheckout({ sessionId: session.id });
-    } else {
-      alert("Something went wrong. Please try again.");
-    }
-  };
+export default function PreviewPage({
+  params,
+}: {
+  params: { mode: Mode };
+}) {
+  const mode = (params.mode === "pro" ? "pro" : "quick") as Mode;
+  const items = POINTS[mode];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-2xl w-full bg-white shadow-md rounded-lg p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          Preview: {isPro ? "Business Pro Audit" : "Quick Check"}
-        </h1>
+    <main className="mx-auto max-w-2xl px-6 py-10">
+      <h1 className="text-2xl font-semibold mb-2">Your result is ready</h1>
+      <p className="text-sm text-gray-500 mb-6">
+        Checked website: https://example.com/
+      </p>
 
-        <ul className="list-disc list-inside mb-8 text-gray-800">
-          {items.map((item, index) => (
-            <li key={index}>{item}</li>
-          ))}
-        </ul>
+      <ul className="space-y-3 mb-8">
+        {items.map((name) => (
+          <li
+            key={name}
+            className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3"
+          >
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-600 inline-block" />
+            <span className="text-[15px]">{name}</span>
+          </li>
+        ))}
+      </ul>
 
+      {/* Sandbox: payment disabled. Redirect to /success. */}
+      <form action="/api/pay" method="POST" className="mb-4">
         <button
-          onClick={handleCheckout}
-          className={`w-full px-6 py-3 text-white font-medium rounded-lg transition ${buttonColor}`}
+          type="submit"
+          className="w-full rounded-md bg-blue-600 px-4 py-3 text-white font-medium hover:opacity-90"
         >
-          Pay & Get Results
+          Pay &amp; Get Results
         </button>
-      </div>
-    </div>
+      </form>
+
+      <Link
+        href="/"
+        className="inline-flex justify-center w-full rounded-md border px-4 py-2 text-sm"
+      >
+        Back to Home
+      </Link>
+    </main>
   );
 }
