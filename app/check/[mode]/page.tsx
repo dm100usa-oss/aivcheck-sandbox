@@ -7,17 +7,15 @@ export default async function CheckPage({
   params: { mode: string };
 }) {
   try {
-    // имитация запроса проверки (замени на свою логику)
+    // Example request, replace with your actual check logic
     const result = await fetch("https://api.example.com/check");
 
     if (!result.ok) {
-      // ❌ ошибка → редирект
       redirect("/scan-failed");
     }
 
     const data = await result.json();
 
-    // ✅ если всё хорошо → выводим данные
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">
@@ -29,7 +27,6 @@ export default async function CheckPage({
       </div>
     );
   } catch (error) {
-    // ❌ любая ошибка → редирект
     redirect("/scan-failed");
   }
 }
