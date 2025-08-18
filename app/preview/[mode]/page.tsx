@@ -32,13 +32,18 @@ const proItems = [
 ];
 
 export default function PreviewPage({ params }: Props) {
-  const items = params.mode === "pro" ? proItems : quickItems;
+  const isPro = params.mode === "pro";
+  const items = isPro ? proItems : quickItems;
+
+  const buttonColor = isPro
+    ? "bg-green-600 hover:bg-green-700"
+    : "bg-blue-600 hover:bg-blue-700";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
       <div className="max-w-2xl w-full bg-white shadow-md rounded-lg p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          Preview: {params.mode === "pro" ? "Business Pro Audit" : "Quick Check"}
+          Preview: {isPro ? "Business Pro Audit" : "Quick Check"}
         </h1>
 
         <ul className="list-disc list-inside mb-8 text-gray-800">
@@ -49,7 +54,7 @@ export default function PreviewPage({ params }: Props) {
 
         <a
           href="/api/checkout"
-          className="block w-full text-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+          className={`block w-full text-center px-6 py-3 text-white font-medium rounded-lg transition ${buttonColor}`}
         >
           Pay & Get Results
         </a>
