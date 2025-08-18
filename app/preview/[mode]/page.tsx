@@ -1,5 +1,6 @@
 // app/preview/[mode]/page.tsx
 import React from "react";
+import { loadStripe } from "@stripe/stripe-js";
 
 type Props = {
   params: { mode: "quick" | "pro" };
@@ -39,6 +40,23 @@ export default function PreviewPage({ params }: Props) {
     ? "bg-green-600 hover:bg-green-700"
     : "bg-blue-600 hover:bg-blue-700";
 
+  const priceId = isPro
+    ? process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID
+    : process.env.NEXT_PUBLIC_STRIPE_QUICK_PRICE_ID;
+
+  const handleCheckout = async () => {
+    const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
+
+    const response = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ priceId }),
+    });
+
+    const session = await response.json();
+    await stripe?.redirectToCheckout({ sessionId: session.id });
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
       <div className="max-w-2xl w-full bg-white shadow-md rounded-lg p-8">
@@ -52,12 +70,12 @@ export default function PreviewPage({ params }: Props) {
           ))}
         </ul>
 
-        <a
-          href="/api/checkout"
-          className={`block w-full text-center px-6 py-3 text-white font-medium rounded-lg transition ${buttonColor}`}
+        <button
+          onClick={handleCheckout}
+          className={`w-full px-6 py-3 text-white font-medium rounded-lg transition ${buttonColor}`}
         >
           Pay & Get Results
-        </a>
+        </button>
       </div>
     </div>
   );
