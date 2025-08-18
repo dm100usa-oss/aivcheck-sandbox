@@ -1,8 +1,5 @@
-"use client";
-
 import React from "react";
 import { CheckItem } from "../types";
-import Donut from "./Donut";
 
 type ReportLayoutProps = {
   score: number;
@@ -10,41 +7,59 @@ type ReportLayoutProps = {
   items: CheckItem[];
 };
 
-export default function ReportLayout({
-  score,
-  interpretation,
-  items,
-}: ReportLayoutProps) {
+const ReportLayout: React.FC<ReportLayoutProps> = ({ score, interpretation, items }) => {
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      {/* Заголовок */}
-      <h1 className="text-2xl font-bold mb-4">AI Visibility Result</h1>
+    <div className="max-w-2xl mx-auto py-10 px-6">
+      <h1 className="text-2xl font-bold mb-6">AI Visibility Result</h1>
 
-      {/* Donut + Interpretation */}
+      {/* Donut */}
       <div className="flex items-center gap-6 mb-6">
-        <Donut score={score} />
-        <div>
-          <p className="text-lg font-medium">{score}% visibility</p>
-          <p className="text-sm text-gray-600">{interpretation}</p>
+        <div className="relative w-32 h-32">
+          <svg className="w-32 h-32 -rotate-90">
+            <circle
+              cx="64"
+              cy="64"
+              r="56"
+              stroke="#e5e7eb"
+              strokeWidth="12"
+              fill="none"
+            />
+            <circle
+              cx="64"
+              cy="64"
+              r="56"
+              stroke={
+                score < 40
+                  ? "#ef4444" // красный
+                  : score < 70
+                  ? "#f59e0b" // жёлтый
+                  : "#22c55e" // зелёный
+              }
+              strokeWidth="12"
+              fill="none"
+              strokeDasharray={`${2 * Math.PI * 56}`}
+              strokeDashoffset={`${2 * Math.PI * 56 * (1 - score / 100)}`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-xl font-bold">{score}%</span>
+            <span className="text-sm">{interpretation}</span>
+          </div>
         </div>
       </div>
 
-      {/* Список пунктов */}
+      {/* Items */}
       <ul className="space-y-4">
         {items.map((item, index) => (
-          <li
-            key={index}
-            className="border rounded-lg p-4 flex justify-between items-center"
-          >
+          <li key={index} className="border rounded-lg p-4 flex justify-between items-center">
             <div>
               <p className="font-medium">{item.name}</p>
               <p className="text-sm text-gray-500">{item.explanation}</p>
             </div>
             <span
-              className={`px-3 py-1 rounded text-sm font-semibold ${
-                item.status === "Passed"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
+              className={`px-3 py-1 rounded text-white text-sm ${
+                item.status === "Passed" ? "bg-green-500" : "bg-red-500"
               }`}
             >
               {item.status}
@@ -53,15 +68,17 @@ export default function ReportLayout({
         ))}
       </ul>
 
-      {/* Кнопка */}
-      <div className="mt-6">
+      {/* Back button */}
+      <div className="mt-8 text-center">
         <a
           href="/"
-          className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
+          className="px-6 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
         >
           Back to Home
         </a>
       </div>
     </div>
   );
-}
+};
+
+export default ReportLayout;
