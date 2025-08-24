@@ -1,11 +1,9 @@
-// app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "AI Visibility Pro",
-  description:
-    "Check if your website is visible to AI assistants like ChatGPT, Bing Copilot, Gemini, and Grok.",
+  description: "Check if your website is visible to AI assistants",
 };
 
 export default function RootLayout({
@@ -15,7 +13,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head />
       <body className="bg-gray-50 text-gray-900 antialiased">
         {children}
       </body>
