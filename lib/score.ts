@@ -1,57 +1,133 @@
-// Type for a single factor
+// lib/score.ts
+
+// Factor definition
 export type Factor = {
   id: number;
   name: string;
   description: string;
-  weight: number;
+  weight: number; // 1–10
 };
 
-// Full list of 15 factors with weights
+// Full list of 15 factors
 export const factors: Factor[] = [
-  { id: 1, name: "robots.txt", description: "Controls AI and search engine access to the site.", weight: 9 },
-  { id: 2, name: "sitemap.xml", description: "Ensures AI can find all important pages.", weight: 8 },
-  { id: 3, name: "X-Robots-Tag", description: "Controls indexing of site sections by AI.", weight: 9 },
-  { id: 4, name: "Meta robots", description: "Defines whether pages are indexed by AI.", weight: 9 },
-  { id: 5, name: "Canonical", description: "Specifies the main version of the page for AI.", weight: 8 },
-  { id: 6, name: "Title tag", description: "Indicates the topic of the page to AI.", weight: 7 },
-  { id: 7, name: "Meta description", description: "Explains the page content to AI.", weight: 7 },
-  { id: 8, name: "Open Graph", description: "Helps AI display the site correctly in results.", weight: 6 },
-  { id: 9, name: "H1", description: "Main heading defines the topic for AI.", weight: 8 },
-  { id: 10, name: "Structured Data", description: "Explains the type of content (products, events, etc.) to AI.", weight: 9 },
-  { id: 11, name: "Mobile friendly", description: "Indicates usability of the site on mobile devices.", weight: 7 },
-  { id: 12, name: "HTTPS / SSL", description: "Secure connection increases AI trust.", weight: 9 },
-  { id: 13, name: "Alt attributes", description: "Explains images to AI.", weight: 6 },
-  { id: 14, name: "Favicon", description: "Makes the site complete and recognizable for AI.", weight: 5 },
-  { id: 15, name: "Page size", description: "Large pages are harder for AI to process.", weight: 7 },
+  {
+    id: 1,
+    name: "robots.txt",
+    description:
+      "Controls whether AI and search engines can access your site. If access is restricted, the site will not appear in results.",
+    weight: 10,
+  },
+  {
+    id: 2,
+    name: "sitemap.xml",
+    description:
+      "Provides AI and search engines with a map of your site. Without it, important pages may remain invisible.",
+    weight: 9,
+  },
+  {
+    id: 3,
+    name: "X-Robots-Tag",
+    description:
+      "HTTP headers that control indexing. If configured incorrectly, parts of the site are not shown in results.",
+    weight: 9,
+  },
+  {
+    id: 4,
+    name: "Meta robots",
+    description:
+      "Meta tags that manage indexing. Wrong settings (noindex) prevent pages from appearing in results.",
+    weight: 8,
+  },
+  {
+    id: 5,
+    name: "Canonical",
+    description:
+      "Defines the main version of a page. If missing or incorrect, duplicates confuse AI and the correct page is not shown.",
+    weight: 7,
+  },
+  {
+    id: 6,
+    name: "Title tag",
+    description:
+      "Indicates the main topic of the page. If missing or vague, AI does not match the page to relevant queries.",
+    weight: 9,
+  },
+  {
+    id: 7,
+    name: "Meta description",
+    description:
+      "Summarizes the content of the page. If absent or misleading, the page loses visibility in AI answers.",
+    weight: 7,
+  },
+  {
+    id: 8,
+    name: "Open Graph",
+    description:
+      "Social tags that help AI display your site correctly. If missing, the site appears incomplete and is shown less often.",
+    weight: 6,
+  },
+  {
+    id: 9,
+    name: "H1",
+    description:
+      "The main heading of the page. If absent or duplicated, AI cannot correctly identify the topic and visibility is lost.",
+    weight: 8,
+  },
+  {
+    id: 10,
+    name: "Structured Data (JSON-LD)",
+    description:
+      "Explains to AI what the site contains (products, articles, events). Without it, AI cannot use the site in extended answers.",
+    weight: 9,
+  },
+  {
+    id: 11,
+    name: "Mobile friendly",
+    description:
+      "If the site is not mobile-optimized, AI considers it outdated. Such sites appear last in results.",
+    weight: 8,
+  },
+  {
+    id: 12,
+    name: "HTTPS / SSL",
+    description:
+      "Secure connection. Without HTTPS, AI considers the site unsafe and excludes it from results.",
+    weight: 10,
+  },
+  {
+    id: 13,
+    name: "Alt attributes",
+    description:
+      "Help AI understand images. Without alt text, visual content is ignored and pages lose visibility in image-related queries.",
+    weight: 7,
+  },
+  {
+    id: 14,
+    name: "Favicon",
+    description:
+      "A small icon for recognition. Without it, the site looks incomplete and is skipped in results.",
+    weight: 4,
+  },
+  {
+    id: 15,
+    name: "Page size",
+    description:
+      "If a page is too large and heavy, AI cannot process it correctly. Such pages are excluded from results.",
+    weight: 6,
+  },
 ];
 
-// Calculate final score (all 15 factors)
-export function calculateScore(results: { id: number; passed: boolean }[]): number {
-  const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
-  const earnedWeight = results.reduce((sum, r) => {
-    const f = factors.find((x) => x.id === r.id);
-    return sum + (r.passed && f ? f.weight : 0);
-  }, 0);
-  return Math.round((earnedWeight / totalWeight) * 100);
+// Keys for quick and pro checks (compatibility with analyze.ts)
+export const QUICK_KEYS = [1, 2, 3, 4, 5];
+export const PRO_KEYS = factors.map((f) => f.id);
+
+// Helper functions
+export function weightOf(id: number): number {
+  const f = factors.find((f) => f.id === id);
+  return f ? f.weight : 0;
 }
 
-// Interpret visibility level
-export function getVisibilityLevel(score: number): string {
-  if (score >= 85) return "Excellent visibility";
-  if (score >= 70) return "Good visibility";
-  if (score >= 50) return "Moderate visibility";
-  return "Low visibility";
-}
-
-// Calculate Quick Check score (first 5 factors only)
-const quickCheckIds = [1, 2, 3, 4, 5];
-
-export function calculateQuickScore(results: { id: number; passed: boolean }[]): number {
-  const quickFactors = factors.filter(f => quickCheckIds.includes(f.id));
-  const totalWeight = quickFactors.reduce((sum, f) => sum + f.weight, 0);
-  const earnedWeight = results.reduce((sum, r) => {
-    const f = quickFactors.find((x) => x.id === r.id);
-    return sum + (r.passed && f ? f.weight : 0);
-  }, 0);
-  return Math.round((earnedWeight / totalWeight) * 100);
+export function nameOf(id: number): string {
+  const f = factors.find((f) => f.id === id);
+  return f ? f.name : `Unknown factor ${id}`;
 }
