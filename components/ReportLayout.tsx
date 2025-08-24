@@ -1,6 +1,5 @@
-// /components/ReportLayout.tsx
 import React from "react";
-import { CheckItem } from "../types";  // ✅ общий тип отсюда
+import { CheckItem } from "../lib/analyze";
 
 type ReportLayoutProps = {
   score: number;
@@ -15,7 +14,6 @@ export default function ReportLayout({
 }: ReportLayoutProps) {
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
-      {/* Круглый прогресс */}
       <div className="flex items-center justify-center mb-6">
         <div className="relative">
           <svg className="w-32 h-32">
@@ -53,10 +51,8 @@ export default function ReportLayout({
         </div>
       </div>
 
-      {/* Интерпретация */}
       <p className="text-center text-lg font-medium mb-4">{interpretation}</p>
 
-      {/* Список */}
       <ul className="space-y-2">
         {items.map((item, index) => (
           <li
@@ -65,11 +61,9 @@ export default function ReportLayout({
           >
             <span>{item.name}</span>
             <span
-              className={
-                item.status === "Passed" ? "text-green-600" : "text-red-600"
-              }
+              className={item.passed ? "text-green-600" : "text-red-600"}
             >
-              {item.status}
+              {item.passed ? "Passed" : "Failed"}
             </span>
           </li>
         ))}
