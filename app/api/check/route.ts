@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { analyze } from "../../../lib/analyze";
+import { NextRequest, NextResponse } from "next/server";
+import { analyze } from "@/lib/analyze";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { url } = await req.json();
+    const { url, mode } = await req.json();
 
     if (!url || typeof url !== "string") {
       return NextResponse.json(
@@ -12,13 +12,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await analyze(url);
+    const result = await analyze(url, mode || "quick");
 
     return NextResponse.json({ success: true, result });
-  } catch (error) {
-    console.error("Error in /api/check:", error);
+  } catch (error: any) {
+    console.error("Check API error:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to analyze website" },
       { status: 500 }
     );
   }
