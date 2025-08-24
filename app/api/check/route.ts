@@ -1,25 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyze } from "../../../lib/analyze";
 
 export async function POST(req: NextRequest) {
   try {
-    const { url, mode } = await req.json();
+    const { url } = await req.json();
 
-    if (!url || typeof url !== "string") {
-      return NextResponse.json(
-        { error: "Invalid or missing URL" },
-        { status: 400 }
-      );
+    if (!url || !/^https?:\/\/.+/i.test(url)) {
+      return NextResponse.redirect(new URL("/scan-failed", req.url));
     }
 
-    const result = await analyze(url, mode || "quick");
-
-    return NextResponse.json({ success: true, result });
-  } catch (error: any) {
-    console.error("Check API error:", error);
-    return NextResponse.json(
-      { error: "Failed to analyze website" },
-      { status: 500 }
-    );
+    return NextResponse.redirect(new URL(`/preview/quick?url=${encodeURIComponent(url)}`, req.url));
+  } catch (error) {
+    console.error("Error in /api/check:", error);
+    return NextResponse.redirect(new URL("/scan-failed", req.url));
   }
 }
