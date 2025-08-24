@@ -1,73 +1,39 @@
-// lib/score.ts
-export type Mode = "quick" | "pro";
+// /lib/score.ts
 
-export type CheckKey =
-  | "robots_txt"
-  | "sitemap_xml"
-  | "x_robots_tag"
-  | "meta_robots"
-  | "canonical"
-  | "title_tag"
-  | "meta_description"
-  | "open_graph"
-  | "h1_present"
-  | "structured_data"
-  | "mobile_friendly"
-  | "https"
-  | "alt_attributes"
-  | "favicon"
-  | "page_404";
-
-export interface CheckMeta {
-  key: CheckKey;
+export type CheckResult = {
+  id: number;
   name: string;
+  description: string;
+  passed: boolean;
   weight: number;
-}
+};
 
-export const CHECKS: CheckMeta[] = [
-  { key: "robots_txt",       name: "robots.txt",                 weight: 10 },
-  { key: "sitemap_xml",      name: "sitemap.xml",                weight: 9  },
-  { key: "x_robots_tag",     name: "X-Robots-Tag (headers)",     weight: 7  },
-  { key: "meta_robots",      name: "Meta robots",                weight: 7  },
-  { key: "canonical",        name: "Canonical",                  weight: 6  },
-  { key: "title_tag",        name: "Title tag",                  weight: 6  },
-  { key: "meta_description", name: "Meta description",           weight: 6  },
-  { key: "open_graph",       name: "Open Graph",                 weight: 6  },
-  { key: "h1_present",       name: "H1",                         weight: 6  },
-  { key: "structured_data",  name: "Structured Data (JSON-LD)",  weight: 6  },
-  { key: "mobile_friendly",  name: "Mobile friendly (viewport)", weight: 6  },
-  { key: "https",            name: "HTTPS / SSL",                weight: 7  },
-  { key: "alt_attributes",   name: "Alt attributes",             weight: 6  },
-  { key: "favicon",          name: "Favicon",                    weight: 6  },
-  { key: "page_404",         name: "404 page",                   weight: 6  },
-]; // total = 100
-
-export const PRO_KEYS: CheckKey[] = CHECKS.map((c) => c.key);
-
-// Quick shows only these 5 items, but the score is always computed over all 15.
-export const QUICK_KEYS: CheckKey[] = [
-  "robots_txt",
-  "sitemap_xml",
-  "meta_robots",
-  "canonical",
-  "title_tag",
+// Таблица весов для 15 пунктов
+const weights: { id: number; weight: number }[] = [
+  { id: 1, weight: 9 },   // robots.txt
+  { id: 2, weight: 8 },   // sitemap.xml
+  { id: 3, weight: 9 },   // X-Robots-Tag
+  { id: 4, weight: 9 },   // Meta robots
+  { id: 5, weight: 8 },   // Canonical
+  { id: 6, weight: 7 },   // Title tag
+  { id: 7, weight: 7 },   // Meta description
+  { id: 8, weight: 6 },   // Open Graph
+  { id: 9, weight: 8 },   // H1
+  { id: 10, weight: 9 },  // Structured Data
+  { id: 11, weight: 7 },  // Mobile friendly
+  { id: 12, weight: 9 },  // HTTPS / SSL
+  { id: 13, weight: 6 },  // Alt attributes
+  { id: 14, weight: 5 },  // Favicon
+  { id: 15, weight: 7 }   // Page size
 ];
 
-export function weightOf(key: CheckKey): number {
-  const it = CHECKS.find((c) => c.key === key);
-  return it ? it.weight : 0;
-}
+// Подсчёт процента
+export function calculateScore(results: CheckResult[]): number {
+  const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
+  const earnedWeight = results.reduce((sum, r) => {
+    const w = weights.find((x) => x.id === r.id);
+    return sum + (r.passed && w ? w.weight : 0);
+  }, 0);
 
-export function nameOf(key: CheckKey): string {
-  const it = CHECKS.find((c) => c.key === key);
-  return it ? it.name : key;
-}
-
-export function interpret(
-  score: number
-): "Excellent" | "Good" | "Moderate" | "Needs Improvement" {
-  if (score >= 85) return "Excellent";
-  if (score >= 70) return "Good";
-  if (score >= 50) return "Moderate";
-  return "Needs Improvement";
+  return Math.round((earnedWeight / totalWeight) * 100);
 }
