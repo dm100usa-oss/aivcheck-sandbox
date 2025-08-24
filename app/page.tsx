@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
+// Animated dots for "Checking..."
 function Dots() {
   return (
     <span className="inline-flex w-[1.7ch] justify-start tabular-nums align-middle">
@@ -24,6 +25,7 @@ function Dots() {
   );
 }
 
+// Normalize input (remove "Checked website:")
 const normalizeUrl = (v: string) =>
   v.replace(/^\s*checked\s+website:\s*/i, "").trim();
 
@@ -81,6 +83,7 @@ export default function Home() {
         and Grok.
       </p>
 
+      {/* Input */}
       <div className="mb-2 relative">
         <input
           type="url"
@@ -88,6 +91,14 @@ export default function Home() {
           placeholder="https://example.com"
           value={url}
           onChange={(e) => setUrl(normalizeUrl(e.target.value))}
+          onPaste={(e) => {
+            const pasted = (e.clipboardData || (window as any).clipboardData).getData("text");
+            const cleaned = normalizeUrl(pasted);
+            if (cleaned !== pasted) {
+              e.preventDefault();
+              setUrl(cleaned);
+            }
+          }}
           onKeyDown={(e) => { if (e.key === "Enter") go("quick"); }}
           className={[
             "w-full rounded-md border px-4 py-3 pr-12 text-base outline-none",
@@ -109,6 +120,7 @@ export default function Home() {
       </div>
       {error && <div className="mb-3 text-sm text-rose-600">{error}</div>}
 
+      {/* Quick Check */}
       <button
         onClick={() => go("quick")}
         disabled={!!loading}
@@ -124,6 +136,7 @@ export default function Home() {
         Instant results, 5-point basic check, simple recommendations
       </p>
 
+      {/* Pro Audit */}
       <button
         onClick={() => go("pro")}
         disabled={!!loading}
