@@ -1,4 +1,4 @@
-// lib/score.ts
+// /lib/score.ts
 
 // Keys for Quick Check
 export const QUICK_KEYS = [
@@ -23,31 +23,31 @@ export const PRO_KEYS = [
   "page_size",
 ];
 
-// Weight of each factor (0–1)
+// Weight of each factor
 export const weightOf: Record<string, number> = {
-  "robots.txt": 0.12,
-  "sitemap.xml": 0.10,
-  "meta_robots": 0.10,
-  "structured_data": 0.10,
-  "meta_description": 0.08,
-  "open_graph": 0.07,
-  "title": 0.08,
-  "h1": 0.08,
-  "https": 0.07,
-  "mobile": 0.07,
-  "alt": 0.05,
-  "canonical": 0.04,
-  "favicon": 0.02,
-  "page_size": 0.02,
+  "robots.txt": 12,
+  "sitemap.xml": 10,
+  "meta_robots": 10,
+  "structured_data": 10,
+  "meta_description": 8,
+  "open_graph": 7,
+  "title": 8,
+  "h1": 8,
+  "https": 7,
+  "mobile": 7,
+  "alt": 5,
+  "canonical": 4,
+  "favicon": 2,
+  "page_size": 2,
 };
 
-// Key type
+// Type for keys
 export type CheckKey = typeof PRO_KEYS[number];
 
-// Check modes
+// Mode type
 export type Mode = "quick" | "pro";
 
-// Interpret score into text
+// Interpret numeric score into text
 export function interpret(score: number): string {
   if (score >= 85) return "Excellent visibility";
   if (score >= 65) return "Good visibility";
@@ -55,7 +55,7 @@ export function interpret(score: number): string {
   return "Low visibility";
 }
 
-// Human-readable names
+// Convert keys to human-readable names
 export function nameOf(key: CheckKey): string {
   switch (key) {
     case "robots.txt": return "Robots.txt";
