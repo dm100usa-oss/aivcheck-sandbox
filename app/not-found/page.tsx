@@ -6,7 +6,7 @@ export default function NotFoundPage() {
           Website Not Found
         </h1>
         <p className="text-gray-700 mb-6">
-          The link you entered doesn’t seem to be a valid website. 
+          The link you entered doesn't seem to be a valid website.
           Please check the address and try again.
         </p>
         <a
