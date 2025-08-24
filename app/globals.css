@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Базовые настройки страницы */
 body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+  @apply bg-gray-50 text-gray-900;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+/* Заголовки */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold text-gray-900;
+}
+
+/* Ссылки */
+a {
+  @apply text-blue-600 hover:text-blue-700 transition;
+}
+
+/* Кнопки */
+button {
+  @apply font-medium rounded-lg transition;
 }
