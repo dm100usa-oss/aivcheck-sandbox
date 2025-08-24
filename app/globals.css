@@ -4,7 +4,7 @@
 
 body {
   background-color: #f9fafb; /* светло-серый фон */
-  color: #111827; /* тёмный текст */
+  color: #111827; /* базовый цвет текста */
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   margin: 0;
