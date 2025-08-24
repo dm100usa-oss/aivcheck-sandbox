@@ -3,7 +3,6 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-/** Only dots animate; text stays stable */
 function Dots() {
   return (
     <span className="inline-flex w-[1.7ch] justify-start tabular-nums align-middle">
@@ -25,7 +24,6 @@ function Dots() {
   );
 }
 
-// убираем "Checked website:" если пользователь вставил его из результатов
 const normalizeUrl = (v: string) =>
   v.replace(/^\s*checked\s+website:\s*/i, "").trim();
 
@@ -38,40 +36,41 @@ export default function Home() {
   const isValid = (u: string) =>
     /^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(u.trim());
 
-  const go = useCallback(async (mode: "quick" | "pro") => {
-    if (loading) return;
-    const u = normalizeUrl(url); // еще раз чистим на всякий случай
-    if (!isValid(u)) {
-      setError("Please enter a valid URL (including http/https).");
-      return;
-    }
-    setError(null);
-    setLoading(mode);
+  const go = useCallback(
+    async (mode: "quick" | "pro") => {
+      if (loading) return;
+      const u = normalizeUrl(url);
+      if (!isValid(u)) {
+        setError("Please enter a valid URL (including http/https).");
+        return;
+      }
+      setError(null);
+      setLoading(mode);
 
-    // show “Checking …” at least 2.2s
-    const minDuration = 2200;
-    const started = Date.now();
+      const minDuration = 2200;
+      const started = Date.now();
 
-    // precheck URL availability (avoid showing Pay on dead sites)
-    let status: "ok" | "error" = "ok";
-    try {
-      const resp = await fetch("/api/precheck", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: u }),
-      });
-      const json = await resp.json();
-      status = json?.ok ? "ok" : "error";
-    } catch {
-      status = "error";
-    }
+      let status: "ok" | "error" = "ok";
+      try {
+        const resp = await fetch("/api/precheck", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: u }),
+        });
+        const json = await resp.json();
+        status = json?.ok ? "ok" : "error";
+      } catch {
+        status = "error";
+      }
 
-    const left = Math.max(0, minDuration - (Date.now() - started));
-    await new Promise((r) => setTimeout(r, left));
+      const left = Math.max(0, minDuration - (Date.now() - started));
+      await new Promise((r) => setTimeout(r, left));
 
-    const q = new URLSearchParams({ url: u, status }).toString();
-    router.push(`/preview/${mode}?${q}`);
-  }, [url, loading, router]);
+      const q = new URLSearchParams({ url: u, status }).toString();
+      router.push(`/preview/${mode}?${q}`);
+    },
+    [url, loading, router]
+  );
 
   const clear = () => setUrl("");
 
@@ -85,7 +84,6 @@ export default function Home() {
         and Grok.
       </p>
 
-      {/* URL input with clear icon */}
       <div className="mb-2 relative">
         <input
           type="url"
@@ -122,7 +120,6 @@ export default function Home() {
       </div>
       {error && <div className="mb-3 text-sm text-rose-600">{error}</div>}
 
-      {/* Quick */}
       <button
         onClick={() => go("quick")}
         disabled={!!loading}
@@ -138,7 +135,6 @@ export default function Home() {
         Instant results, 5-point basic check, simple recommendations
       </p>
 
-      {/* Pro */}
       <button
         onClick={() => go("pro")}
         disabled={!!loading}
