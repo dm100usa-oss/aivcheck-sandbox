@@ -36,41 +36,38 @@ export default function Home() {
   const isValid = (u: string) =>
     /^https?:\/\/[\w.-]+\.[a-z]{2,}.*$/i.test(u.trim());
 
-  const go = useCallback(
-    async (mode: "quick" | "pro") => {
-      if (loading) return;
-      const u = normalizeUrl(url);
-      if (!isValid(u)) {
-        setError("Please enter a valid URL (including http/https).");
-        return;
-      }
-      setError(null);
-      setLoading(mode);
+  const go = useCallback(async (mode: "quick" | "pro") => {
+    if (loading) return;
+    const u = normalizeUrl(url);
+    if (!isValid(u)) {
+      setError("Please enter a valid URL (including http/https).");
+      return;
+    }
+    setError(null);
+    setLoading(mode);
 
-      const minDuration = 2200;
-      const started = Date.now();
+    const minDuration = 2200;
+    const started = Date.now();
 
-      let status: "ok" | "error" = "ok";
-      try {
-        const resp = await fetch("/api/precheck", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: u }),
-        });
-        const json = await resp.json();
-        status = json?.ok ? "ok" : "error";
-      } catch {
-        status = "error";
-      }
+    let status: "ok" | "error" = "ok";
+    try {
+      const resp = await fetch("/api/precheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: u }),
+      });
+      const json = await resp.json();
+      status = json?.ok ? "ok" : "error";
+    } catch {
+      status = "error";
+    }
 
-      const left = Math.max(0, minDuration - (Date.now() - started));
-      await new Promise((r) => setTimeout(r, left));
+    const left = Math.max(0, minDuration - (Date.now() - started));
+    await new Promise((r) => setTimeout(r, left));
 
-      const q = new URLSearchParams({ url: u, status }).toString();
-      router.push(`/preview/${mode}?${q}`);
-    },
-    [url, loading, router]
-  );
+    const q = new URLSearchParams({ url: u, status }).toString();
+    router.push(`/preview/${mode}?${q}`);
+  }, [url, loading, router]);
 
   const clear = () => setUrl("");
 
@@ -91,14 +88,6 @@ export default function Home() {
           placeholder="https://example.com"
           value={url}
           onChange={(e) => setUrl(normalizeUrl(e.target.value))}
-          onPaste={(e) => {
-            const pasted = (e.clipboardData || (window as any).clipboardData).getData("text");
-            const cleaned = normalizeUrl(pasted);
-            if (cleaned !== pasted) {
-              e.preventDefault();
-              setUrl(cleaned);
-            }
-          }}
           onKeyDown={(e) => { if (e.key === "Enter") go("quick"); }}
           className={[
             "w-full rounded-md border px-4 py-3 pr-12 text-base outline-none",
